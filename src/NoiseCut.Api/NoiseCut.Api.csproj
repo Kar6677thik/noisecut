@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\NoiseCut.Infrastructure\NoiseCut.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

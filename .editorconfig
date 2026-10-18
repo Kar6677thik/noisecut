@@ -1,0 +1,28 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,props,csproj,slnx,xml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_for_built_in_types = true:silent
+csharp_style_var_when_type_is_apparent = true:silent
+dotnet_sort_system_directives_first = true
+# Unused usings are noise, but failing the build for them is too harsh while learning.
+dotnet_diagnostic.IDE0005.severity = suggestion
+# Logging via LoggerMessage source generators is faster, but plain ILogger calls are easier to read here.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none
+# Services are apps, not libraries: no need for ConfigureAwait(false) everywhere.
+dotnet_diagnostic.CA2007.severity = none

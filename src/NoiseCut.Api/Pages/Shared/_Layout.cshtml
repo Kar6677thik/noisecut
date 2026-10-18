@@ -1,0 +1,34 @@
+@inject ProfileInfo Profile
+@inject AdminGuard Admin
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(ViewData["Title"] is string t ? $"{t} · NoiseCut" : "NoiseCut")</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="top">
+        <a class="brand" href="/">Noise<span>Cut</span></a>
+        <nav>
+            <a href="/">Live</a>
+            <a href="/alerts">Alerts</a>
+            <a href="/rules">Rules</a>
+            <a href="/about">About</a>
+            @if (Admin.BypassEnabled)
+            {
+                <a href="/admin" class="admin-link">Admin</a>
+            }
+        </nav>
+        <span class="profile profile-@Profile.Name" title="Active configuration profile">profile: @Profile.Name</span>
+    </header>
+    <main>
+        @RenderBody()
+    </main>
+    <footer>
+        A learning-scale real-time alerting engine. Times marked <em>IST</em> are on the simulated clock; other times are wall-clock UTC.
+    </footer>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

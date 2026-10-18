@@ -1,0 +1,36 @@
+@page "/rules/{id}"
+@model NoiseCut.Api.Pages.Rules.DetailModel
+@{
+    var r = Model.Rule!;
+    ViewData["Title"] = r.Name;
+}
+
+<p><a href="/rules">← all rules</a></p>
+<h1>@r.Name <span class="sub">v@(r.Row.Version)</span></h1>
+<p class="lead">@r.Description</p>
+
+<h2>Definition</h2>
+<pre class="json">@Model.PrettyDefinition</pre>
+
+<h2>Recent alerts</h2>
+@if (Model.Alerts.Count == 0)
+{
+    <p class="empty">This rule has not fired yet.</p>
+}
+else
+{
+    <table>
+        <thead><tr><th>Status</th><th>Alert</th><th>Episode start</th><th>Candidates</th></tr></thead>
+        <tbody>
+            @foreach (var a in Model.Alerts)
+            {
+                <tr>
+                    <td><span class="status status-@a.Status">@a.Status</span></td>
+                    <td><a href="/alerts/@Uri.EscapeDataString(a.AlertKey)">@Fmt.Entity(a.EntityKey)</a><div class="sub">@a.Detail</div></td>
+                    <td>@Fmt.Sim(a.EpisodeStart)</td>
+                    <td>@a.CandidateCount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,34 @@
+@page "/admin"
+@model NoiseCut.Api.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Admin";
+}
+
+<h1>Admin</h1>
+<p class="hint">M1 has no login yet: admin pages are only reachable with the local-development bypass. Scripts can use the
+    <code>X-Admin-Key</code> header against <code>/api/scenarios/{name}</code>.</p>
+
+@if (Model.Message is not null)
+{
+    <p class="flash @(Model.Ok ? "ok" : "bad")">@Model.Message</p>
+}
+
+<h2>Inject a scenario</h2>
+<form method="post" class="filters">
+    <label>Scenario
+        <select name="Scenario">
+            @foreach (var s in NoiseCut.Core.Simulation.ScenarioBook.Names)
+            {
+                <option value="@s">@s</option>
+            }
+        </select>
+    </label>
+    <label>Target <input name="Target" placeholder="r-017 or z-02 (blank = random)" /></label>
+    <label>Duration (sim min) <input name="DurationMinutes" type="number" min="1" step="1" /></label>
+    <button type="submit">Start</button>
+</form>
+
+<h2>Simulator</h2>
+<pre class="json">@Model.SimulatorStatus</pre>
+
+<p><a href="/admin/sinks/webhook">Webhook sink inbox →</a></p>

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NoiseCut.Core/NoiseCut.Core.csproj" />
+    <Project Path="src/NoiseCut.Infrastructure/NoiseCut.Infrastructure.csproj" />
+    <Project Path="src/NoiseCut.Simulator/NoiseCut.Simulator.csproj" />
+    <Project Path="src/NoiseCut.Engine/NoiseCut.Engine.csproj" />
+    <Project Path="src/NoiseCut.Notifier/NoiseCut.Notifier.csproj" />
+    <Project Path="src/NoiseCut.Api/NoiseCut.Api.csproj" />
+    <Project Path="src/NoiseCut.Migrator/NoiseCut.Migrator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NoiseCut.Core.Tests/NoiseCut.Core.Tests.csproj" />
+    <Project Path="tests/NoiseCut.IntegrationTests/NoiseCut.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

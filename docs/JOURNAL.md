@@ -5,6 +5,50 @@ Each milestone PR adds at least one entry. Decisions that need more than a line 
 
 ---
 
+## 2026-10-18 — M1: Build (naive, end to end)
+
+**What**
+- A .NET 10 solution with seven projects (SPEC §3.2). Shared build settings: nullable on, warnings are errors, central package versions.
+- `Core`: event envelope + codec, rule model + validator, panes, the three evaluators, `RuleEngine`, a deterministic order simulator, and notification text. **98 unit tests**, including whole-scenario tests that run the simulator straight into the rules with no Kafka.
+- `Migrator`: a hand-written migration runner (advisory lock + journal), schema v1, and seeds for zones, restaurants, the 3 rules and 7 days of baselines.
+- `Simulator`, `Engine`, `Notifier`, `Api` services, a single Dockerfile, a Compose stack (Redpanda, Console, PostgreSQL, Mailpit + services), and `scripts/demo.(ps1|sh)`.
+- **20 integration tests** against real PostgreSQL (Testcontainers): migrations, seeding, rule loading, baseline fallback, idempotent intake, the outbox with two competing dispatchers, backoff, and HMAC.
+- `ci.yml`: build, unit tests, integration tests, compose validation and image builds on every PR.
+
+**Result (exit criterion)**: one `scripts/demo.ps1` run from an empty stack, on a laptop (14 vCPU / 7.7 GB available to Docker), demo rate 600 orders/sim-min:
+
+| Incident | Rule | Detected after (wall clock) |
+|----------|------|-----------------------------|
+| kitchen-meltdown r-017 | restaurant-delay-burst | 40 s |
+| rider-shortage z-04 | stuck-pickup | 186 s |
+| zone-cancel-spike z-02 | zone-cancellation-spike | 266 s |
+
+Naive noise in the same run: **186 candidates → 120 alerts → 372 notifications, 46 duplicate webhooks** at the sink.
+These are not M2 measurements, since nothing was controlled, but they show the problem exists before we measure it properly.
+
+**Why it is naive on purpose**: auto-commit, in-memory state, processing time and EveryMatch are each a Break experiment in M2.
+Robust state/time modes and cooldown/grouping/escalation are *refused at startup* in M1 (`EnsureSupported`) instead of silently ignored.
+`EmitMode=OnTransition` and `Notifier:Dedup` already work, because episodes and the intake log are needed for keys anyway. They get measured in M3.
+
+**Spec changes found by building it** (all in SPEC.md, marked "M1")
+| Finding | Change |
+|---------|--------|
+| A no-incident test fired a false cancellation spike at `minDenominator` 200 | Raised to 300; minBaselineRate is a floor (`max`) |
+| A rider shortage would also trigger rule A through pickup delays | Rule A counts `stage = kitchen` only |
+| "Drop absence state at deadline + 2 min" made late pickups unable to resolve | Keep fired state until pickup/cancel, bounded by `MaxOrderAge` (3 h) |
+| The sim clock outruns the 7 seeded days in about 17 real hours | Baseline lookup falls back a week at a time (same hour-of-week) |
+| A restarted simulator would send event time backwards | It resumes after the newest event in the log |
+| "EveryMatch" was undefined for timers and ratios | Defined per rule kind (SPEC §6.5) |
+| Deliveries' unique key would have hidden naive duplicates | `notification_key` is not unique in v1; robust mode stops repeats at intake |
+
+**Tooling notes**
+- .NET 10 SDK + xUnit v3 needs the Microsoft Testing Platform runner (`global.json` → `"test": {"runner": …}`), and tests run with `dotnet test --project <path>`.
+- Npgsql logs a harmless `libgssapi_krb5` warning in slim containers. `GSS Encryption Mode=Disable` in the connection string stops the probe.
+
+**Next:** M2 Break. Prometheus + Grafana, the metrics from SPEC §10, the simulator truth log and chaos knobs, then experiments 1–4 with numbers.
+
+---
+
 ## 2026-10-17 — M0: Specification
 
 **What**

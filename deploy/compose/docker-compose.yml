@@ -1,0 +1,173 @@
+# NoiseCut local stack. From the repo root:
+#   docker compose -f deploy/compose/docker-compose.yml up -d --build
+# Then open http://localhost:8080 (dashboard) and http://localhost:8090 (Redpanda Console).
+# Everything here is for local development: the secrets below are throwaway defaults, overridable through .env.
+
+name: noisecut
+
+x-service: &service
+  build:
+    context: ../..
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  environment: &service-env
+    NoiseCut__Profile: ${NOISECUT_PROFILE:-naive}
+    Kafka__BootstrapServers: redpanda:9092
+    ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=noisecut;Username=noisecut;Password=${NOISECUT_PG_PASSWORD:-noisecut};GSS Encryption Mode=Disable
+    Logging__Console__FormatterName: simple
+
+services:
+  # --- infrastructure ------------------------------------------------------------------------------------------------
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v26.2.5
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container        # relaxed fsync and single-node defaults: fine for a laptop, not for production
+      - --smp=1
+      - --memory=1G
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"               # so `dotnet run` on the host can reach the broker
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true'"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  # One-shot: create the topics from SPEC §4.4 (if they don't exist), then exit.
+  topics-init:
+    image: docker.redpanda.com/redpandadata/redpanda:v26.2.5
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -euo pipefail
+        create() {
+          if rpk topic describe "$$1" -X brokers=redpanda:9092 >/dev/null 2>&1; then
+            echo "topic $$1 exists"
+          else
+            rpk topic create "$$1" -p "$$2" -c retention.ms="$$3" -X brokers=redpanda:9092
+          fi
+        }
+        create order-events      6 604800000   # 7 days
+        create zone-partials     6 86400000    # 1 day
+        create alert-candidates  6 259200000   # 3 days
+        create late-events       1 259200000
+        create order-events-dlq  1 604800000
+    restart: "no"
+
+  console:
+    image: docker.redpanda.com/redpandadata/console:latest   # debugging UI only
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "8090:8080"
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: noisecut
+      POSTGRES_USER: noisecut
+      POSTGRES_PASSWORD: ${NOISECUT_PG_PASSWORD:-noisecut}
+    ports:
+      - "${NOISECUT_PG_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noisecut -d noisecut"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:latest  # fake SMTP server + inbox UI; the email channel arrives in M3
+    ports:
+      - "8025:8025"
+
+  # --- NoiseCut services -----------------------------------------------------------------------------------------------
+
+  migrator:
+    <<: *service
+    build:
+      context: ../..
+      args: { SERVICE: Migrator }
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  simulator:
+    <<: *service
+    build:
+      context: ../..
+      args: { SERVICE: Simulator }
+    environment:
+      <<: *service-env
+      Simulator__TimeScale: ${NOISECUT_TIMESCALE:-10}
+      Simulator__OrdersPerSimMinute: ${NOISECUT_ORDERS_PER_SIM_MINUTE:-300}
+      Simulator__Seed: ${NOISECUT_SEED:-42}
+    ports:
+      - "8081:8081"                 # control API; exposed locally for scripts, never in a deployment
+    depends_on:
+      topics-init:
+        condition: service_completed_successfully
+
+  engine:
+    <<: *service
+    build:
+      context: ../..
+      args: { SERVICE: Engine }
+    environment:
+      <<: *service-env
+      Engine__TimeScale: ${NOISECUT_TIMESCALE:-10}
+    depends_on:
+      topics-init:
+        condition: service_completed_successfully
+      migrator:
+        condition: service_completed_successfully
+
+  notifier:
+    <<: *service
+    build:
+      context: ../..
+      args: { SERVICE: Notifier }
+    environment:
+      <<: *service-env
+      Notifier__Webhook__Url: http://api:8080/sinks/webhook
+      Notifier__Webhook__Secret: ${NOISECUT_WEBHOOK_SECRET:-local-dev-webhook-secret}
+    depends_on:
+      topics-init:
+        condition: service_completed_successfully
+      migrator:
+        condition: service_completed_successfully
+
+  api:
+    <<: *service
+    build:
+      context: ../..
+      args: { SERVICE: Api }
+    environment:
+      <<: *service-env
+      Api__SimulatorUrl: http://simulator:8081
+      Api__WebhookSecret: ${NOISECUT_WEBHOOK_SECRET:-local-dev-webhook-secret}
+      Api__Admin__Key: ${NOISECUT_ADMIN_KEY:-local-dev-admin-key}
+      Api__Admin__LocalBypass: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+
+volumes:
+  redpanda-data:
+  postgres-data:
