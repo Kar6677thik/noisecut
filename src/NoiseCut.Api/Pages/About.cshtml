@@ -1,0 +1,38 @@
+@page "/about"
+@inject Microsoft.Extensions.Options.IOptions<ApiOptions> Options
+@inject ProfileInfo Profile
+@{
+    ViewData["Title"] = "About";
+}
+
+<h1>About NoiseCut</h1>
+<p class="lead">A learning-scale rebuild of the problem behind Swiggy's <em>Klaxon</em> alerting platform:
+    catch real business incidents early, from a live stream of order events, without burying people in noise.</p>
+
+<h2>What you are looking at</h2>
+<ul>
+    <li>A <b>simulator</b> produces food-delivery order events for 6 zones and 60 restaurants, on a clock that runs 10× faster than real time.</li>
+    <li>A <b>streaming engine</b> consumes them from Redpanda (Kafka-compatible) and evaluates JSON rules over time windows.</li>
+    <li>A <b>notifier</b> turns rule hits into alerts and delivers them through a transactional outbox to this dashboard and a webhook.</li>
+</ul>
+
+<h2>Active profile: <code>@Profile.Name</code></h2>
+@if (Profile.Name == "naive")
+{
+    <p>This deployment runs the <b>naive</b> profile: processing-time windows, in-memory state, auto-committed offsets, and an alert for every
+        match. It is the "before" picture, built on purpose so each failure can be measured before it is fixed.</p>
+}
+else
+{
+    <p>This deployment runs the <b>robust</b> profile: event-time windows with watermarks, checkpointed state, idempotent intake and noise controls.</p>
+}
+
+<h2>Links</h2>
+<ul>
+    <li>Source, specification and design decisions: <a href="@Options.Value.RepositoryUrl">@Options.Value.RepositoryUrl</a></li>
+    @if (!string.IsNullOrEmpty(Options.Value.GrafanaUrl))
+    {
+        <li>Metrics: <a href="@Options.Value.GrafanaUrl">Grafana</a></li>
+    }
+    <li>JSON: <a href="/api/alerts">/api/alerts</a> · <a href="/api/rules">/api/rules</a> · <a href="/api/stats">/api/stats</a></li>
+</ul>

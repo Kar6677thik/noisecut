@@ -234,14 +234,15 @@ different conditions.
 
 ### 5.2 Reference rule A — `windowed_count` (restaurant delay burst)
 
-> A restaurant has **5 or more** orders delayed by **over 15 minutes** within **10 minutes**.
+> A restaurant has **5 or more** orders delayed by **over 15 minutes** in the kitchen within **10 minutes**.
 
 ```json
 {
   "kind": "windowed_count",
   "entity": "restaurantId",
   "source": { "eventType": "order.delayed",
-              "where": [ { "field": "data.delayMinutes", "op": "gt", "value": 15 } ] },
+              "where": [ { "field": "data.delayMinutes", "op": "gt", "value": 15 },
+                         { "field": "data.stage", "op": "eq", "value": "kitchen" } ] },
   "distinctBy": "orderId",
   "window": { "type": "sliding", "size": "PT10M", "slide": "PT1M" },
   "condition": { "op": "gte", "value": 5 }
@@ -249,6 +250,7 @@ different conditions.
 ```
 
 Semantics:
+- *M1 change:* only **kitchen** delays count. A rider shortage also produces large `pickup` delays (20–35 min), and those are rule C's job. Without this filter, one rider shortage would raise a "delay burst" for every busy restaurant in the zone as well as the stuck-pickup alerts.
 - Matching events go into the 1-minute pane of their `occurredAt`. The window value at pane *p* is the number of **distinct orders** across panes *(p−9 … p)*. `distinctBy` stops one order that slips three times from counting as three delays.
 - **Early firing is allowed.** The count can only grow as events arrive, so as soon as it reaches 5 the condition is definitely true. We emit `firing` immediately and do not wait for the watermark. This is what makes detection fast.
 - **Resolution waits for the watermark.** The episode resolves only once the watermark has passed the end of a pane whose trailing window is below threshold. A count can only be known to be *low* after its window has closed.
@@ -267,13 +269,14 @@ Semantics:
   "window": { "type": "tumbling", "size": "PT1H" },
   "baseline": { "offset": "P7D", "source": "zone_hourly_stats" },
   "condition": { "op": "gte_multiple", "value": 2.0 },
-  "guards": { "minDenominator": 20, "minBaselineRate": 0.02 }
+  "guards": { "minDenominator": 300, "minBaselineRate": 0.02 }
 }
 ```
 
 Semantics:
-- `rate = cancelled / placed` for the zone in the current event-time hour. The baseline is the same zone and hour-of-week 7 days earlier, read from `zone_hourly_stats`.
-- **Guards against noise.** Do not evaluate until `placed ≥ minDenominator`, because 2 cancellations out of 3 orders means nothing. If the baseline rate is 0 or missing, use `minBaselineRate`, so dividing by zero never makes a spike "infinite".
+- `rate = cancelled / placed` for the zone in the current event-time hour. The baseline is the same zone and hour-of-week 7 days earlier, read from `zone_hourly_stats`. If that exact hour is missing, the lookup steps back one week at a time to the most recent hour with the same hour-of-week. *(M1: the sim clock runs 10× faster than the wall clock, so it outruns the seeded week in about 17 real hours.)*
+- **Guards against noise.** Do not evaluate until `placed ≥ minDenominator`, because 2 cancellations out of 3 orders means nothing. The baseline rate is floored: `effective = max(baseline, minBaselineRate)`. A zero or missing baseline therefore can't make a spike "infinite".
+- *M1 change: `minDenominator` 20 → 300.* With 200, the no-incident scenario test (`ScenarioDetectionTests`, seed 1) raised a false spike within 2 simulated hours of normal traffic. The cause is binomial noise: at n = 200 and a true rate of 3.5%, reaching 2× the baseline is only about 2 standard deviations away, and the rule re-checks every minute. A rough estimate for n = 300 puts the chance per evaluation near 0.05%. The no-incident tests (3 seeds × 2 h) now pass. The trade-off is that the rule can only fire once 300 orders have arrived in the hour, so quiet hours are never evaluated. Guards are statistics, not decoration.
 - This is a **non-monotonic** condition: the ratio can rise and then fall. It is evaluated at every pane close once the guard passes, and at most one episode exists per (zone, hour). The episode resolves when the watermark closes the hour.
 - When the watermark closes an hour, the zone stage writes that hour's final `(placed, cancelled)` to `zone_hourly_stats`. After a week of running, real baselines replace the seeded ones.
 - **Cross-partition:** orders for one zone are spread over many partitions, because events are keyed by restaurant. This rule therefore runs in the **zone stage**, fed by `zone-partials` (§6.4, ADR-0004).
@@ -301,7 +304,8 @@ Semantics:
 - The timer fires when **the watermark reaches the deadline** and neither `picked_up` nor `cancelled` has been seen for that order. It is never driven by the wall clock.
 - **Order-insensitive.** If `picked_up` arrives *before* `food_ready` (out-of-order delivery), the order's state remembers it, and the later `food_ready` never arms a timer. Naive mode lacks this, which produces a false alert (Break #2).
 - A `picked_up` after the timer fired, including a late one, emits `resolved`.
-- Per-order state is dropped after `delivered`/`cancelled`, or at `deadline + allowedLateness`.
+- Per-order state is dropped when the expected or cancelling event arrives. A fired alert waits for that event, since a late pickup resolves it, but only up to `MaxOrderAge` (default `PT3H` event time). After that it is dropped without a `resolved`, so memory stays bounded.
+  *(M1 correction: v0 of this spec said "drop at `deadline + allowedLateness`". That would have discarded fired alerts 2 minutes after firing, so a rider arriving 25–40 minutes after food was ready could never resolve them.)*
 
 ### 5.5 Rule validation (enforced by `Core`)
 
@@ -309,6 +313,8 @@ Semantics:
 - Referenced event types and fields exist in §4.2. `op` is one of `gt, gte, lt, lte, eq, ne`.
 - `notify.channels` contains only configured channels. Escalation steps are ordered and strictly increasing.
 - The `id` matches `^[a-z0-9-]{3,64}$`.
+- `windowed_count` conditions must be `gt` or `gte` (monotonic), which is what makes early firing safe. `ratio_vs_baseline` must be per `zoneId` with a tumbling `PT1H` window, because baselines are stored per zone and hour. `absence` correlates by `orderId`.
+- `notify.groupBy` must be an envelope field (`zoneId`, `restaurantId`, `orderId`).
 
 ---
 
@@ -332,6 +338,11 @@ Defaults: `MaxOutOfOrderness = PT30S`, `AllowedLateness = PT2M` (event time). Bo
 |------|------------------------|------------|---------|
 | `ProcessingTime` | consumer receive time × `TimeScale` | none: panes close by wall clock | naive |
 | `EventTime` | `occurredAt` | per partition + ticks | robust |
+
+How processing time is turned into sim time (M1): the engine anchors on the first record it reads,
+`assigned = firstOccurredAt + (wallNow − wallAtFirstRecord) × TimeScale`, and ignores `occurredAt` from then on.
+Every evaluator is written against (assigned time, watermark), so **this one function is the only difference between the two modes**.
+In processing-time mode the watermark is simply the assigned time, because "now" never goes backwards.
 
 ### 6.3 State & checkpointing (`Engine:StateMode`)
 
@@ -364,6 +375,13 @@ Checkpointed protocol (ADR-0005):
 |------|-----------|---------|
 | `EveryMatch` | Emit a `firing` candidate for **every** event while the condition is true. | naive (Break #3: "500 alerts a minute") |
 | `OnTransition` | Emit only `firing` (false→true) and `resolved` (true→false) per episode. | robust |
+
+"Every event" per rule kind (M1 clarification):
+- `windowed_count`: every matching event for the entity while its window is at or over the threshold.
+- `ratio_vs_baseline`: every evaluation (each pane close) while the zone-hour is over the threshold.
+- `absence`: no difference. Nothing arrives for a stuck order, so it fires once in both modes.
+
+Both modes track episodes, so a repeated candidate carries the **same** alert key. That is what lets dedup collapse them later.
 
 ### 6.6 Alert candidate (topic `alert-candidates`)
 
@@ -475,9 +493,14 @@ A changed rule version starts with fresh state (§5).
 - **Discrete-event scheduler.** Each order's lifecycle is scheduled on a priority queue keyed by sim time. Events are released as the sim clock passes them.
 - **Sim clock:** `simNow = simStart + (wallElapsed × TimeScale)`. Default `TimeScale = 10`.
 - **Load:** `OrdersPerSimMinute` (default 300 at lunch/dinner peaks, following a daily curve). That is about 6 events/order, roughly **300 msgs/s** at 10×. One knob sets the rate for benchmarks.
-- **Timing model** (sim time): accept 0–2 m · ready 10–25 m after accept · pickup 2–8 m after ready · deliver 15–35 m after pickup · baseline cancel ≈ 3%. A `delayed` event is emitted when a stage overruns its sampled duration.
-- **Deterministic:** `Seed` makes runs reproducible, which is essential for before/after experiments.
+- **Timing model** (sim time): accept 0–2 m · ready 10–25 m after accept · pickup 2–8 m after ready · deliver 15–35 m after pickup · baseline cancel ≈ 3% (3.5% at peaks, 2.5% otherwise). Cancellations happen before accept (40%), in the kitchen (40%) or while waiting for a rider (20%).
+- **Delays** (M1 detail): when the kitchen will overrun, `order.delayed {stage: kitchen}` is emitted **2–5 minutes after accept**. That is when the ETA visibly slips, not when the food is finally ready, which is what makes early detection possible. Organic noise: 5% of orders overrun by 3–12 min and 0.2% by 15–20 min. During a rider shortage, `order.delayed {stage: pickup}` is emitted 8 minutes after food_ready.
+- **Daily curve** (Bengaluru time): 00–07 ×0.2 · 07–11 ×0.4 · 11–15 ×1.0 · 15–19 ×0.5 · 19–23 ×1.0 · 23–24 ×0.4.
+- **Lazy lifecycle:** each released event schedules only the order's *next* step, and samples its duration at that moment. A scenario that starts mid-way therefore affects orders already in flight.
+- **Deterministic:** `Seed` makes runs reproducible, which is essential for before/after experiments. Event IDs are UUIDv7 built from the seeded RNG, so they are reproducible too.
+- **Sim clock across restarts:** unless `Simulator:SimStart` is set, the simulator reads the last record of every partition and resumes one second after the newest `occurredAt` (or at wall-clock now if that is later). Event time never goes backwards, and the log is the source of truth.
 - **Ticks:** every wall second, a `clock.tick` with `occurredAt = simNow` goes to **each** partition of `order-events`.
+- **Control API** (internal port 8081, never public): `GET /status`, `GET /scenarios`, `POST /scenarios/{name}` with an optional `{ target, durationMinutes, intensity }`, and `POST /config { ordersPerSimMinute }`.
 
 **Scenarios** (each has a target, a duration in sim time, and an intensity):
 
@@ -536,10 +559,13 @@ so every query is visible SQL (ADR-0011).
 | `alerts` | `alert_key` | Status, rule, entity, group, timestamps, `suppressed_count`, `acked_at`. |
 | `alert_candidates` | `(alert_key, status)` unique | Intake log; also holds counts of deduped repeats. |
 | `notification_groups` | id; unique open `(rule_id, group_key)` | `flush_at`, members. |
-| `deliveries` | id | Outbox (§7.3). Unique `(alert_key, kind, step, channel)`. |
+| `deliveries` | id | Outbox (§7.3). `notification_key = alertKey\|kind\|step\|channel` identifies the logical notification and is sent as `Idempotency-Key`. *Not* unique in schema v1: the naive profile must be able to send the same notification twice, so the sink can count the repeat. Robust mode stops repeats earlier, at intake. |
 | `webhook_receipts` | `idempotency_key` | Sink log; `receive_count` > 1 means a duplicate. |
 
-Retention: a nightly cleanup deletes candidates/deliveries older than 14 days and alerts older than 30 days.
+Retention: a nightly cleanup deletes candidates/deliveries older than 14 days and alerts older than 30 days (M3).
+
+Schema history: `0001_initial_schema.sql` (M1) creates everything above **except** `engine_checkpoints` and `notification_groups`.
+Those arrive in later migrations, together with the code that uses them, so the migration history reads like the milestone history.
 
 ---
 

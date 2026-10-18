@@ -1,0 +1,54 @@
+@page "/alerts"
+@model NoiseCut.Api.Pages.Alerts.IndexModel
+@{
+    ViewData["Title"] = "Alerts";
+}
+
+<h1>Alerts</h1>
+<form method="get" class="filters">
+    <label>Status
+        <select name="status">
+            <option value="">any</option>
+            @foreach (var s in new[] { "firing", "acknowledged", "resolved" })
+            {
+                <option value="@s" selected="@(Model.Status == s)">@s</option>
+            }
+        </select>
+    </label>
+    <label>Rule
+        <select name="rule">
+            <option value="">any</option>
+            @foreach (var r in Model.RuleIds)
+            {
+                <option value="@r" selected="@(Model.Rule == r)">@r</option>
+            }
+        </select>
+    </label>
+    <button type="submit">Filter</button>
+</form>
+
+@if (Model.Alerts.Count == 0)
+{
+    <p class="empty">No alerts yet. Start the stack and inject a scenario (see the README).</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Status</th><th>Severity</th><th>Alert</th><th>Episode start</th><th>First detected</th><th>Candidates</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var a in Model.Alerts)
+            {
+                <tr>
+                    <td><span class="status status-@a.Status">@a.Status</span></td>
+                    <td><span class="sev sev-@a.Severity">@a.Severity</span></td>
+                    <td><a href="/alerts/@Uri.EscapeDataString(a.AlertKey)">@a.Title</a><div class="sub">@a.Detail</div></td>
+                    <td>@Fmt.Sim(a.EpisodeStart)</td>
+                    <td>@Fmt.Wall(a.FirstDetectedAt)</td>
+                    <td>@a.CandidateCount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

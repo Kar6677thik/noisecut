@@ -1,0 +1,25 @@
+@page "/rules"
+@model NoiseCut.Api.Pages.Rules.IndexModel
+@{
+    ViewData["Title"] = "Rules";
+}
+
+<h1>Rules</h1>
+<p class="hint">Rules are JSON documents stored in PostgreSQL. The engine reloads them every 30 seconds; a new version starts with empty windows.
+    Detection durations are on the simulated clock; notification durations are wall-clock.</p>
+<table>
+    <thead><tr><th>Rule</th><th>Kind</th><th>Severity</th><th>Version</th><th>Enabled</th><th>Alerts (24 h)</th></tr></thead>
+    <tbody>
+        @foreach (var r in Model.Rules)
+        {
+            <tr>
+                <td><a href="/rules/@r.Row.Id">@r.Name</a><div class="sub">@r.Description</div></td>
+                <td><code>@r.Kind</code></td>
+                <td><span class="sev sev-@r.Severity">@r.Severity</span></td>
+                <td>v@(r.Row.Version)</td>
+                <td>@(r.Row.Enabled ? "yes" : "no")</td>
+                <td>@r.Row.Hits24h</td>
+            </tr>
+        }
+    </tbody>
+</table>

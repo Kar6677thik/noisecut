@@ -1,0 +1,27 @@
+@page "/admin/sinks/webhook"
+@model NoiseCut.Api.Pages.Admin.SinksModel
+@{
+    ViewData["Title"] = "Webhook sink";
+}
+
+<p><a href="/admin">← admin</a></p>
+<h1>Webhook sink inbox</h1>
+<p class="hint">Every notification the notifier POSTed to <code>/sinks/webhook</code>, keyed by its <code>Idempotency-Key</code>.
+    <b>Received &gt; 1</b> means the same logical notification arrived again: the number we want to drive to zero.</p>
+
+<section class="tiles">
+    <div class="tile"><b>@Fmt.N(Model.Stats.SinkReceipts)</b><span>receipts</span></div>
+    <div class="tile warn"><b>@Fmt.N(Model.Stats.SinkDuplicates)</b><span>duplicates</span></div>
+</section>
+
+<table>
+    <thead><tr><th>Received</th><th>Idempotency-Key</th><th>First</th><th>Last</th></tr></thead>
+    <tbody>
+        @foreach (var r in Model.Receipts)
+        {
+            <tr class="@(r.ReceiveCount > 1 ? "dup" : "")">
+                <td>@r.ReceiveCount</td><td><code>@r.IdempotencyKey</code></td><td>@Fmt.Wall(r.FirstReceivedAt)</td><td>@Fmt.Wall(r.LastReceivedAt)</td>
+            </tr>
+        }
+    </tbody>
+</table>

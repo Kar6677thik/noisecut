@@ -7,6 +7,7 @@
 | **When** does each piece happen, and in what order? | [`plan/MILESTONES.md`](plan/MILESTONES.md) |
 | What happened so far, and what's next? | [`JOURNAL.md`](JOURNAL.md) |
 | What concepts do I need to understand it? | [`learning/CONCEPTS.md`](learning/CONCEPTS.md) |
+| How does the code actually work? | [`learning/M1-build.md`](learning/M1-build.md) (code tour: one event, end to end) |
 | What did each experiment measure? | `experiments/` (from M2) |
 | How do I operate it? | `runbooks/` (from M4) |
 | What are the final numbers? | `report/REPORT.md` (M5) |

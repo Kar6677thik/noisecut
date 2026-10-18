@@ -1,0 +1,55 @@
+# CI: runs on every pull request and every push to main.
+# M1 scope: build, unit tests, integration tests (real PostgreSQL via Testcontainers) and image builds.
+# M4 extends this with manifest rendering and pushes images to GHCR from a separate deploy workflow.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege: CI only needs to read the code.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore NoiseCut.slnx
+
+      - name: Build (warnings are errors)
+        run: dotnet build NoiseCut.slnx --no-restore -c Release
+
+      - name: Unit tests (Core, no Docker needed)
+        run: dotnet test --project tests/NoiseCut.Core.Tests --no-build -c Release
+
+      # GitHub's Ubuntu runners have Docker, so Testcontainers can start a throwaway PostgreSQL.
+      - name: Integration tests (Testcontainers)
+        run: dotnet test --project tests/NoiseCut.IntegrationTests --no-build -c Release
+
+  images:
+    name: compose config and image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate the compose file
+        run: docker compose -f deploy/compose/docker-compose.yml config --quiet
+
+      - name: Build every service image
+        run: docker compose -f deploy/compose/docker-compose.yml build

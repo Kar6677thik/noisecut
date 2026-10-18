@@ -1,0 +1,50 @@
+@page "/alerts/{key}"
+@model NoiseCut.Api.Pages.Alerts.DetailModel
+@{
+    var a = Model.Alert!;
+    ViewData["Title"] = a.Title;
+}
+
+<p><a href="/alerts">← all alerts</a></p>
+<h1>@a.Title</h1>
+<p class="lead">@a.Detail</p>
+
+<dl class="facts">
+    <dt>Status</dt><dd><span class="status status-@a.Status">@a.Status</span></dd>
+    <dt>Severity</dt><dd><span class="sev sev-@a.Severity">@a.Severity</span></dd>
+    <dt>Rule</dt><dd><a href="/rules/@a.RuleId">@a.RuleId</a> v@(a.RuleVersion)</dd>
+    <dt>Entity</dt><dd>@a.EntityType = @Fmt.Entity(a.EntityKey)</dd>
+    <dt>Group</dt><dd>@Fmt.Entity(a.GroupKey)</dd>
+    <dt>Episode start</dt><dd>@Fmt.Sim(a.EpisodeStart) <span class="sub">(event time)</span></dd>
+    <dt>First detected</dt><dd>@Fmt.Wall(a.FirstDetectedAt)</dd>
+    <dt>Resolved</dt><dd>@Fmt.Wall(a.ResolvedAt)</dd>
+    <dt>Alert key</dt><dd><code>@a.AlertKey</code></dd>
+    <dt>Observed</dt><dd><code>@a.Observed</code></dd>
+</dl>
+
+<h2>Candidates received</h2>
+<p class="hint">One row per transition (firing, resolved). <b>Repeats</b> are extra copies of the same transition: replays after a crash, or
+    <code>EveryMatch</code> re-emitting while the condition holds.</p>
+<table>
+    <thead><tr><th>Transition</th><th>First received</th><th>Repeats</th><th>Last repeat</th></tr></thead>
+    <tbody>
+        @foreach (var c in Model.Candidates)
+        {
+            <tr><td>@c.Status</td><td>@Fmt.Wall(c.ReceivedAt)</td><td>@c.RepeatCount</td><td>@Fmt.Wall(c.LastRepeatAt)</td></tr>
+        }
+    </tbody>
+</table>
+
+<h2>Deliveries</h2>
+<table>
+    <thead><tr><th>Channel</th><th>Kind</th><th>Status</th><th>Attempts</th><th>Queued</th><th>Sent</th><th>Error</th></tr></thead>
+    <tbody>
+        @foreach (var d in Model.Deliveries)
+        {
+            <tr>
+                <td>@d.Channel</td><td>@d.Kind</td><td><span class="status status-@d.Status">@d.Status</span></td><td>@d.Attempts</td>
+                <td>@Fmt.Wall(d.CreatedAt)</td><td>@Fmt.Wall(d.SentAt)</td><td class="sub">@d.LastError</td>
+            </tr>
+        }
+    </tbody>
+</table>

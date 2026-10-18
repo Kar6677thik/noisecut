@@ -16,7 +16,7 @@ The order follows the project guide's loop: **Learn → Build → Break → Prov
 
 ---
 
-## M0 — Specification ✅ (this PR)
+## M0 — Specification ✅
 
 **Why first:** streaming systems have subtle semantics (time, ordering, duplicates). Deciding them in prose is cheap.
 Discovering them in code is expensive.
@@ -27,7 +27,12 @@ Deliverables: [`SPEC.md`](../spec/SPEC.md), the ADRs, this plan, [`CONCEPTS.md`]
 
 ---
 
-## M1 — Build (the smallest thing that works end to end)
+## M1 — Build (the smallest thing that works end to end) ✅
+
+> Done 2026-10-18. The demo detected all three incidents (40 s / 186 s / 266 s). Results and spec changes are in the
+> [journal](../JOURNAL.md), and the code tour is in [`learning/M1-build.md`](../learning/M1-build.md).
+> Deviations: the Engine polls rules every 30 s (LISTEN/NOTIFY hot reload moves to M4, together with rule editing), and the integration
+> test project was started in M1, ahead of M3, because the outbox and intake deserved real-database tests from day one.
 
 **Goal:** events flow from the simulator to a notification on the dashboard and the webhook sink. Everything runs in **naive** mode on purpose.
 

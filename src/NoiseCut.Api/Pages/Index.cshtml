@@ -1,0 +1,63 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Live";
+}
+
+<section class="tiles" id="tiles">
+    <div class="tile"><b data-stat="firingNow">@Fmt.N(Model.Stats.FiringNow)</b><span>firing now</span></div>
+    <div class="tile"><b data-stat="alerts24h">@Fmt.N(Model.Stats.Alerts24h)</b><span>alerts (24 h)</span></div>
+    <div class="tile"><b data-stat="candidatesIn">@Fmt.N(Model.Stats.CandidatesIn)</b><span>candidates in</span></div>
+    <div class="tile"><b data-stat="notificationsSent">@Fmt.N(Model.Stats.NotificationsSent)</b><span>notifications sent</span></div>
+    <div class="tile warn"><b data-stat="sinkDuplicates">@Fmt.N(Model.Stats.SinkDuplicates)</b><span>duplicate webhooks</span></div>
+</section>
+
+<p class="hint">
+    <b>Candidates in</b> counts every signal the engine sent, repeats included. <b>Duplicate webhooks</b> counts notifications the
+    receiving end got more than once. The gap between candidates and real incidents is the noise this project exists to cut.
+</p>
+
+<div class="cols">
+    <section>
+        <h2>Firing now</h2>
+        @if (Model.Firing.Count == 0)
+        {
+            <p class="empty">Nothing is firing.</p>
+        }
+        else
+        {
+            <table>
+                <thead><tr><th>Severity</th><th>Alert</th><th>Episode start</th><th>Repeats</th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model.Firing)
+                    {
+                        <tr>
+                            <td><span class="sev sev-@a.Severity">@a.Severity</span></td>
+                            <td><a href="/alerts/@Uri.EscapeDataString(a.AlertKey)">@a.Title</a><div class="sub">@a.Detail</div></td>
+                            <td>@Fmt.Sim(a.EpisodeStart)</td>
+                            <td>@a.CandidateCount</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    <section>
+        <h2>Live feed <span class="live" id="live-state">connecting…</span></h2>
+        <ul class="feed" id="feed">
+            @foreach (var a in Model.Recent)
+            {
+                <li class="kind-@(a.Status == "resolved" ? "resolved" : "firing")">
+                    <time>@Fmt.Wall(a.LastCandidateAt)</time>
+                    <a href="/alerts/@Uri.EscapeDataString(a.AlertKey)">@a.Title</a>
+                    <div class="sub">@a.Detail</div>
+                </li>
+            }
+        </ul>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/feed.js" asp-append-version="true"></script>
+}

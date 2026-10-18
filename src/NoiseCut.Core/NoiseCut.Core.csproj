@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pure logic: no Kafka, no SQL, no HTTP. If it decides whether something is an alert, it lives here. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="NoiseCut.Core.Tests" />
+  </ItemGroup>
+</Project>

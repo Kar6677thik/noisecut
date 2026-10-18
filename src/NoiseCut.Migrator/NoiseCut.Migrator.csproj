@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NoiseCut.Infrastructure\NoiseCut.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- SQL files are compiled into the binary, so the migrator image needs nothing else at runtime. -->
+    <EmbeddedResource Include="Migrations\*.sql" />
+  </ItemGroup>
+</Project>
