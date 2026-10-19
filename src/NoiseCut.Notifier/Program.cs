@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using NoiseCut.Infrastructure;
 using NoiseCut.Infrastructure.Kafka;
 using NoiseCut.Infrastructure.Postgres;
+using NoiseCut.Infrastructure.Telemetry;
 using NoiseCut.Notifier;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -11,6 +12,7 @@ var profile = builder.Configuration.ApplyProfile();
 builder.Services.Configure<NotifierOptions>(builder.Configuration.GetSection(NotifierOptions.Section));
 builder.Services.Configure<KafkaOptions>(builder.Configuration.GetSection(KafkaOptions.Section));
 builder.Services.AddNoiseCutPostgres(builder.Configuration);
+builder.Services.AddNoiseCutTelemetry(builder.Configuration, "noisecut-notifier");
 builder.Services.AddSingleton<RuleStore>();
 builder.Services.AddSingleton<RuleCatalog>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RuleCatalog>());

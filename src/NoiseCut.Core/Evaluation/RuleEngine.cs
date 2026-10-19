@@ -26,6 +26,10 @@ public sealed class RuleEngine
 
     public IEnumerable<Rule> ActiveRules => _evaluators.Values.Select(e => e.Rule);
 
+    /// <summary>Per-(zone, hour) numerator/denominator counts held by ratio rules in <i>this</i> engine instance.</summary>
+    public IReadOnlyList<ZoneHourCount> ZoneHourCounts() =>
+        _evaluators.Values.OfType<RatioVsBaselineEvaluator>().SelectMany(e => e.Counts()).ToList();
+
     /// <summary>
     /// Replace the rule set. An unchanged (id, version) keeps its state. A new version starts fresh, because
     /// counts gathered under the old conditions would be meaningless under the new ones (SPEC §5).

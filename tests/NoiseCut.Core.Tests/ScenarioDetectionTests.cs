@@ -95,6 +95,36 @@ public class ScenarioDetectionTests
         Assert.All(firing, c => Assert.Equal("z-01", c.GroupKey));
     }
 
+    [Theory]
+    [InlineData(10)]
+    [InlineData(11)]
+    [InlineData(12)]
+    public void Slow_kitchen_is_a_near_miss_that_never_alerts_in_event_time(int seed)
+    {
+        var firing = Firing(Detect(seed, TimeSpan.FromMinutes(50), ScenarioBook.SlowKitchen, "r-005"), "restaurant-delay-burst");
+
+        Assert.Empty(firing);
+    }
+
+    [Fact]
+    public void Slow_kitchen_fires_falsely_when_a_backlog_is_squeezed_into_processing_time()
+    {
+        // Break #2 in miniature: the consumer was paused for 30 sim minutes, then reads the backlog in seconds.
+        // In processing time every backlog record gets (almost) the same "now", so 4-minute-apart delays share one pane.
+        var sim = new OrderSimulation(10, LunchUtc, 300);
+        sim.Scenarios.Start(ScenarioBook.SlowKitchen, new ScenarioRequest { Target = "r-005" }, LunchUtc);
+        var backlog = new List<OrderEvent>();
+        sim.AdvanceTo(LunchUtc + TimeSpan.FromMinutes(35), backlog);
+
+        var engine = Ev.Engine(EmitMode.OnTransition, NoBaseline.Instance, ReferenceRules.DelayBurst);
+        var resumedAt = LunchUtc + TimeSpan.FromMinutes(35);
+        var candidates = backlog.SelectMany(e => engine.Process(e, resumedAt, new RecordInfo(e.EventId, Ev.T0, 0, 0))).ToList();
+
+        var delayedAtTarget = backlog.Count(e => e.Type == EventTypes.Delayed && e.RestaurantId == "r-005" && (int)e.Data!["delayMinutes"]! > 15);
+        Assert.True(delayedAtTarget >= 5, $"expected at least 5 spaced-out delays, got {delayedAtTarget}");
+        Assert.Contains(candidates, c => c.EntityKey == "r-005" && c.Status == CandidateStatus.Firing);
+    }
+
     [Fact]
     public void Kitchen_meltdown_is_still_detected_off_peak()
     {

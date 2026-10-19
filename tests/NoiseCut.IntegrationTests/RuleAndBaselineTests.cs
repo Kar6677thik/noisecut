@@ -73,6 +73,7 @@ public class RuleAndBaselineTests(PostgresFixture postgres)
         Assert.Equal(0.05, cache.GetRate("z-01", tuesday1300.AddDays(7).AddHours(1)));
         Assert.Null(cache.GetRate("z-01", tuesday1300.AddHours(2)));
         Assert.Null(cache.GetRate("z-09", tuesday1300));
-        Assert.Null(cache.GetRate("z-01", tuesday1300.AddDays(-7)));
+        // Older than all data (sim clock pinned to earlier today): the nearest later week is used.
+        Assert.Equal(0.03, cache.GetRate("z-01", tuesday1300.AddDays(-7)));
     }
 }

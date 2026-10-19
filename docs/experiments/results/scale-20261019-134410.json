@@ -1,0 +1,256 @@
+{
+  "experiment": "scale",
+  "startedAt": "2026-10-19T13:44:10.3388334+00:00",
+  "durationSeconds": 1138,
+  "commit": "04db4c5\u002Bdirty",
+  "machine": {
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "logicalCpus": 14,
+    "docker": "14 CPUs, 7751802880 bytes, server 28.4.0"
+  },
+  "configuration": {
+    "profile": "naive",
+    "serviceOverrides": {
+      "engine": {
+        "Engine__EmitMode": "OnTransition"
+      },
+      "simulator": {
+        "Simulator__StartAtLocalHour": "16.5"
+      }
+    },
+    "observeSeconds": 360
+  },
+  "results": {
+    "runs": [
+      {
+        "ordersPerSimMinute": 300,
+        "engines": 1,
+        "detected": true,
+        "secondsToDetect": 175.6,
+        "alerts": 1,
+        "alertDetails": [
+          "cancellation rate 5.5% vs baseline 2.7% (45/818 orders), threshold 2x"
+        ],
+        "truthPlacedThisHourAtSnapshot": 897,
+        "enginesWithZ02Data": 1,
+        "engineViewsAtSnapshot": [
+          {
+            "instance": "172.19.0.11:9464",
+            "placedSeen": 895,
+            "shareOfZone": 1
+          }
+        ],
+        "observeSeconds": 360
+      },
+      {
+        "ordersPerSimMinute": 300,
+        "engines": 3,
+        "detected": true,
+        "secondsToDetect": 164.8,
+        "alerts": 1,
+        "alertDetails": [
+          "cancellation rate 5.9% vs baseline 2.7% (31/525 orders), threshold 2x"
+        ],
+        "truthPlacedThisHourAtSnapshot": 876,
+        "enginesWithZ02Data": 3,
+        "engineViewsAtSnapshot": [
+          {
+            "instance": "172.19.0.12:9464",
+            "placedSeen": 619,
+            "shareOfZone": 0.69
+          },
+          {
+            "instance": "172.19.0.13:9464",
+            "placedSeen": 267,
+            "shareOfZone": 0.3
+          },
+          {
+            "instance": "172.19.0.11:9464",
+            "placedSeen": 11,
+            "shareOfZone": 0.01
+          }
+        ],
+        "observeSeconds": 360
+      },
+      {
+        "ordersPerSimMinute": 80,
+        "engines": 1,
+        "detected": true,
+        "secondsToDetect": 325.9,
+        "alerts": 1,
+        "alertDetails": [
+          "cancellation rate 5.5% vs baseline 2.7% (26/475 orders), threshold 2x"
+        ],
+        "truthPlacedThisHourAtSnapshot": 337,
+        "enginesWithZ02Data": 1,
+        "engineViewsAtSnapshot": [
+          {
+            "instance": "172.19.0.8:9464",
+            "placedSeen": 329,
+            "shareOfZone": 1
+          }
+        ],
+        "observeSeconds": 360
+      },
+      {
+        "ordersPerSimMinute": 80,
+        "engines": 3,
+        "detected": true,
+        "secondsToDetect": 297.1,
+        "alerts": 1,
+        "alertDetails": [
+          "cancellation rate 5.6% vs baseline 2.7% (17/305 orders), threshold 2x"
+        ],
+        "truthPlacedThisHourAtSnapshot": 304,
+        "enginesWithZ02Data": 2,
+        "engineViewsAtSnapshot": [
+          {
+            "instance": "172.19.0.10:9464",
+            "placedSeen": 217,
+            "shareOfZone": 0.7
+          },
+          {
+            "instance": "172.19.0.12:9464",
+            "placedSeen": 91,
+            "shareOfZone": 0.3
+          }
+        ],
+        "observeSeconds": 360
+      }
+    ]
+  },
+  "steps": [
+    {
+      "t": 0,
+      "step": "=== scale (profile naive) ==="
+    },
+    {
+      "t": 0,
+      "step": "RUN with 1 engine(s) at 300 orders/sim-min"
+    },
+    {
+      "t": 0,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 0,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 6.3,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 15.3,
+      "step": "stack ready; sim time 2026-10-19T11:00:16\u002B00:00, demand factor 0.5"
+    },
+    {
+      "t": 15.3,
+      "step": "waiting 15s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 30.5,
+      "step": "waiting 200s: zone-hour counts build up"
+    },
+    {
+      "t": 230.6,
+      "step": "1 engine(s) @ 300: detected=true after 175.6s; truth 897; views [{\u0022instance\u0022:\u0022172.19.0.11:9464\u0022,\u0022placedSeen\u0022:895,\u0022shareOfZone\u0022:1}]"
+    },
+    {
+      "t": 230.6,
+      "step": "RUN with 3 engine(s) at 300 orders/sim-min"
+    },
+    {
+      "t": 230.6,
+      "step": "fresh stack: down -v, then up with 3 engine(s)"
+    },
+    {
+      "t": 230.6,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 232.7,
+      "step": "$ docker compose up -d --scale engine=3"
+    },
+    {
+      "t": 240.6,
+      "step": "stack ready; sim time 2026-10-19T11:00:01\u002B00:00, demand factor 0.5"
+    },
+    {
+      "t": 240.6,
+      "step": "waiting 15s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 255.7,
+      "step": "waiting 200s: zone-hour counts build up"
+    },
+    {
+      "t": 455.8,
+      "step": "3 engine(s) @ 300: detected=true after 164.8s; truth 876; views [{\u0022instance\u0022:\u0022172.19.0.12:9464\u0022,\u0022placedSeen\u0022:619,\u0022shareOfZone\u0022:0.69},{\u0022instance\u0022:\u0022172.19.0.13:9464\u0022,\u0022placedSeen\u0022:267,\u0022shareOfZone\u0022:0.3},{\u0022instance\u0022:\u0022172.19.0.11:9464\u0022,\u0022placedSeen\u0022:11,\u0022shareOfZone\u0022:0.01}]"
+    },
+    {
+      "t": 455.8,
+      "step": "RUN with 1 engine(s) at 80 orders/sim-min"
+    },
+    {
+      "t": 455.8,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 455.8,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 458.5,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 467.6,
+      "step": "stack ready; sim time 2026-10-19T11:00:15\u002B00:00, demand factor 0.5"
+    },
+    {
+      "t": 467.6,
+      "step": "waiting 15s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 482.8,
+      "step": "waiting 200s: zone-hour counts build up"
+    },
+    {
+      "t": 813,
+      "step": "1 engine(s) @ 80: detected=true after 325.9s; truth 337; views [{\u0022instance\u0022:\u0022172.19.0.8:9464\u0022,\u0022placedSeen\u0022:329,\u0022shareOfZone\u0022:1}]"
+    },
+    {
+      "t": 813,
+      "step": "RUN with 3 engine(s) at 80 orders/sim-min"
+    },
+    {
+      "t": 813,
+      "step": "fresh stack: down -v, then up with 3 engine(s)"
+    },
+    {
+      "t": 813,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 815.2,
+      "step": "$ docker compose up -d --scale engine=3"
+    },
+    {
+      "t": 822.8,
+      "step": "stack ready; sim time 2026-10-19T11:00:00\u002B00:00, demand factor 0.5"
+    },
+    {
+      "t": 822.8,
+      "step": "waiting 15s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 838,
+      "step": "waiting 200s: zone-hour counts build up"
+    },
+    {
+      "t": 1138.3,
+      "step": "3 engine(s) @ 80: detected=true after 297.1s; truth 304; views [{\u0022instance\u0022:\u0022172.19.0.10:9464\u0022,\u0022placedSeen\u0022:217,\u0022shareOfZone\u0022:0.7},{\u0022instance\u0022:\u0022172.19.0.12:9464\u0022,\u0022placedSeen\u0022:91,\u0022shareOfZone\u0022:0.3}]"
+    }
+  ]
+}

@@ -5,6 +5,50 @@ Each milestone PR adds at least one entry. Decisions that need more than a line 
 
 ---
 
+## 2026-10-19 — M2: Break (measure every failure, fix none)
+
+**What**
+- **Metrics**: OpenTelemetry → Prometheus exporter on an internal port in every service, with the instruments from SPEC §10
+  (`NoiseCutMetrics.cs`). Prometheus and Grafana are in Compose, and the "NoiseCut overview" dashboard is provisioned from git.
+- **Truth log**: the simulator records every injected scenario (`sim_scenarios`, migration 0002). SQL views grade every alert as a
+  true or false positive, and `/api/truth` serves the result.
+- **Chaos**: hold-back (out-of-order), duplicates, a late burst, and a `slow-kitchen` negative-control scenario.
+  `Simulator:StartAtLocalHour` pins the demand curve.
+- **Experiment harness**: `tools/NoiseCut.Experiments` (ADR-0013) runs each experiment on a fresh stack and writes JSON results.
+  `scripts/break/*` are thin wrappers.
+- **Tests**: 102 unit tests and 21 integration tests, including the grading views.
+
+**Results** (details on each page in `docs/experiments/`)
+| # | Break | Headline number |
+|---|-------|-----------------|
+| 1 | SIGKILL the engine mid-incident (5 kills) | 0 missed; a second alert for the same incident after **4 of 4** kills that followed detection; 0 duplicate webhooks, because the repeat had a *new* key |
+| 2A | 1% of events held back up to 60 s | **43 false stuck-pickups per sim hour** |
+| 2B | Engine paused 120 s, with near-miss restaurants | **6 false delay bursts** (exactly the 6 near-miss restaurants) and **1,428 false stuck-pickups** |
+| 3 | Alert storm, 8 restaurants | 1 incident → **1,164 notifications**, peak **801/min**, 566 duplicate webhooks |
+| 4 | 3 engines, no zone stage | Evenly split zone (z-03, about ⅓ per engine): the spike was **never detected**; 1 engine caught it in 230 s. Skewed zone (z-02, 70/30): detected, but every alert reported one engine's partial counts |
+
+**Surprises (the useful part)**
+- **Break #2's biggest effect was not the one predicted.** A processing-time timer fires on the wall clock: after a 2-minute stall
+  every pending pickup timer fired before the backlog containing the pickups was read. It was 240× more false alerts than the
+  rule-A effect I was looking for.
+- **Dedup can't fix a crash on its own.** After a restart the repeated alert had a different key, because episode starts came from
+  processing-time panes. The sink saw 0 duplicates while a human got two alerts. Determinism has to come first (checkpoint + event time).
+- **Partition skew decides Break #4.** z-02's ten restaurants hash 7/0/3 onto the three engines' partition pairs, so one engine
+  saw 70% of the zone and still detected the spike. The break shows up as wrong counts, plus a miss or a delay that depends on the zone.
+- **A seeding gap produced false cancellation spikes.** Pinning the sim clock to earlier today put "7 days ago" just before the
+  seeded week. The baseline fell back to the 2% floor, and normal 3.5% peak traffic crossed 2×. Fixed: the baseline lookup now also
+  searches forward. The contaminated run was discarded and re-run.
+
+**Process notes**
+- The first scale run was discarded. It snapshotted counts right after an hour boundary, and compared processing-time hours
+  with event-time hours. The redesign starts on an hour and reports *shares*.
+- All runs used the M2 working tree (base `04db4c5` + uncommitted changes, so the result files say `+dirty`). The PR commits exactly that code.
+
+**Next:** M3 Prove. Checkpointing, event time + watermarks, transitions + noise policy, zone stage, scale to 3, Experiment 5,
+and 20 or more crashes with 0 duplicates.
+
+---
+
 ## 2026-10-18 — M1: Build (naive, end to end)
 
 **What**

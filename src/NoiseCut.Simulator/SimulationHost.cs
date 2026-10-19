@@ -18,18 +18,34 @@ public sealed class SimClock(DateTimeOffset simStart, DateTimeOffset wallStart, 
 /// Owns the one <see cref="OrderSimulation"/> instance. The producer loop and the HTTP control API both touch it,
 /// so every access goes through a lock. (The simulation itself is single-threaded and deterministic.)
 /// </summary>
-public sealed class SimulationHost
+public sealed class SimulationHost(TimeProvider wall)
 {
     private readonly Lock _gate = new();
     private OrderSimulation? _sim;
     private SimClock? _clock;
+    private volatile ChaosSettings _chaos = ChaosSettings.Off;
+    private long _burstUntilTicks;
 
     public long EventsProduced;
     public long TicksProduced;
+    public long EventsHeld;
+    public long EventsDuplicated;
 
     public bool IsRunning => _sim is not null;
 
     public SimClock Clock => _clock ?? throw new InvalidOperationException("simulation not started");
+
+    public ChaosSettings Chaos
+    {
+        get => _chaos;
+        set => _chaos = value;
+    }
+
+    /// <summary>Wall time until which every order event is held (a "late burst"); in the past when no burst is active.</summary>
+    public DateTimeOffset BurstUntil => new(Interlocked.Read(ref _burstUntilTicks), TimeSpan.Zero);
+
+    public void StartLateBurst(TimeSpan duration) =>
+        Interlocked.Exchange(ref _burstUntilTicks, (wall.GetUtcNow() + duration).UtcTicks);
 
     public void Start(OrderSimulation sim, SimClock clock)
     {
@@ -65,6 +81,25 @@ public sealed class SimulationHost
         }
     }
 
+    public IReadOnlyList<ActiveScenario> ActiveScenarios()
+    {
+        lock (_gate)
+        {
+            return _sim is null ? [] : [.. _sim.Scenarios.ActiveAt(_sim.GeneratedUntil)];
+        }
+    }
+
+    public double OrdersPerSimMinute
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _sim?.OrdersPerSimMinute ?? 0;
+            }
+        }
+    }
+
     public void SetRate(double ordersPerSimMinute)
     {
         lock (_gate)
@@ -96,6 +131,10 @@ public sealed class SimulationHost
                 pendingSteps = _sim.PendingSteps,
                 eventsProduced = Interlocked.Read(ref EventsProduced),
                 ticksProduced = Interlocked.Read(ref TicksProduced),
+                eventsHeld = Interlocked.Read(ref EventsHeld),
+                eventsDuplicated = Interlocked.Read(ref EventsDuplicated),
+                chaos = _chaos,
+                lateBurstUntil = BurstUntil > wall.GetUtcNow() ? BurstUntil : (DateTimeOffset?)null,
                 activeScenarios = _sim.Scenarios.ActiveAt(now).ToList(),
             };
         }

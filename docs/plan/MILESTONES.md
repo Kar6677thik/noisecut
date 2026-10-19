@@ -52,7 +52,11 @@ Tasks:
 
 ---
 
-## M2 — Break (measure the failures; change no fixes)
+## M2 — Break (measure the failures; change no fixes) ✅
+
+> Done 2026-10-19. Numbers are in [docs/experiments/](../experiments/README.md), and the lessons are in [learning/M2-break.md](../learning/M2-break.md).
+> Deviations: experiments run from a .NET harness instead of shell scripts (ADR-0013); a fifth scenario, `slow-kitchen`, was added as a
+> negative control for Break #2; and Break #4 was run on two zones, because the outcome depends on partition skew.
 
 **Goal:** turn each failure into a reproducible script and a recorded number. Each one gets a page in `docs/experiments/`.
 

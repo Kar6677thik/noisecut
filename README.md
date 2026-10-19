@@ -3,7 +3,7 @@
 **A real-time business alerting engine that catches real incidents early without drowning people in noise.**
 A learning-scale rebuild of the problem behind Swiggy's Klaxon platform.
 
-> **Status:** M1 done. It works end to end in the deliberately **naive** profile. Next: M2 (measure each failure).
+> **Status:** M2 done. The naive system is instrumented and each failure is measured ([experiments](docs/experiments/README.md)). Next: M3 (fix and prove).
 > See the [milestones](docs/plan/MILESTONES.md).
 
 ```
@@ -39,6 +39,11 @@ The demo injects the three reference incidents and waits for each alert. That ta
 | http://localhost:8080/admin | Inject scenarios (local-only admin bypass) |
 | http://localhost:8090 | Redpanda Console: topics, partitions, messages |
 | http://localhost:8081/status | Simulator status (internal API) |
+| http://localhost:3000 | Grafana: the "NoiseCut overview" dashboard (M2) |
+| http://localhost:9090 | Prometheus: raw metrics and PromQL |
+
+Experiments (M2): `dotnet run --project tools/NoiseCut.Experiments -- <restart|out-of-order|storm|scale|all>`,
+with results in [`docs/experiments/`](docs/experiments/README.md).
 
 Tests: `dotnet test --project tests/NoiseCut.Core.Tests` (fast, no Docker) and `dotnet test --project tests/NoiseCut.IntegrationTests` (needs Docker).
 

@@ -45,6 +45,10 @@ internal sealed class RatioVsBaselineEvaluator : IRuleEvaluator
 
     public Rule Rule { get; }
 
+    /// <summary>The counts this instance holds right now. Exposed as a metric so Break #4 can show each engine's partial view.</summary>
+    internal IEnumerable<ZoneHourCount> Counts() =>
+        _cells.Select(c => new ZoneHourCount(c.Key.Zone, c.Key.Hour, c.Value.Numerator, c.Value.Denominator));
+
     public void OnEvent(OrderEvent evt, DateTimeOffset time, EvaluationContext ctx)
     {
         var isNumerator = RuleEvaluators.Selects(_numerator, evt);

@@ -7,6 +7,7 @@ using NoiseCut.Core.Events;
 using NoiseCut.Core.Serialization;
 using NoiseCut.Core.Time;
 using NoiseCut.Infrastructure.Kafka;
+using NoiseCut.Infrastructure.Telemetry;
 
 namespace NoiseCut.Engine;
 
@@ -71,6 +72,7 @@ public sealed class EngineWorker(
 
         var stats = new Stats();
         var statsTimer = Stopwatch.StartNew();
+        var gaugeTimer = Stopwatch.StartNew();
 
         try
         {
@@ -85,6 +87,12 @@ public sealed class EngineWorker(
                 if (result?.Message is { } message)
                 {
                     Handle(result, message, engine, processingClock, producer, stats);
+                }
+
+                if (gaugeTimer.Elapsed >= TimeSpan.FromSeconds(5))
+                {
+                    RecordGauges(consumer, engine, stats);
+                    gaugeTimer.Restart();
                 }
 
                 if (statsTimer.Elapsed >= TimeSpan.FromSeconds(15))
@@ -116,11 +124,13 @@ public sealed class EngineWorker(
         Stats stats)
     {
         stats.Consumed++;
+        stats.LastProducedAt[result.Partition.Value] = message.Timestamp.UtcDateTime;
 
         if (!EventCodec.TryParse(message.Value, out var evt, out var error))
         {
             // Poison message: park it with the reason and keep going. A stuck partition is worse than a dropped record.
             stats.Dlq++;
+            NoiseCutMetrics.DeadLettered.Add(1);
             var headers = new Headers()
                 .WithHeader("x-error", error ?? "unknown")
                 .WithHeader("x-source", $"{result.Topic}/{result.Partition.Value}@{result.Offset.Value}");
@@ -128,12 +138,16 @@ public sealed class EngineWorker(
             return;
         }
 
-        var time = processingClock.Assign(evt!.OccurredAt);
+        NoiseCutMetrics.EventsConsumed.Add(1, new("stage", "order"), new("type", evt!.Type));
+        var time = processingClock.Assign(evt.OccurredAt);
         var record = new RecordInfo(evt.EventId, message.Timestamp.UtcDateTime, result.Partition.Value, result.Offset.Value);
 
         foreach (var candidate in engine.Process(evt, time, record))
         {
             stats.Candidates++;
+            var rule = new KeyValuePair<string, object?>("rule", candidate.RuleId);
+            NoiseCutMetrics.Candidates.Add(1, rule, new("status", candidate.Status == CandidateStatus.Firing ? "firing" : "resolved"));
+            NoiseCutMetrics.DetectionLatency.Record((candidate.DetectedAt - candidate.TriggerProducedAt).TotalSeconds, rule);
             producer.Produce(
                 Topics.AlertCandidates,
                 new Message<string?, byte[]>
@@ -144,6 +158,39 @@ public sealed class EngineWorker(
                 },
                 OnDelivery);
             logger.LogDebug("{Status} {AlertKey}", candidate.Status, candidate.AlertKey);
+        }
+    }
+
+    /// <summary>
+    /// Lag = how many records are waiting in each partition (high watermark − our position). Record age = how old, in wall time,
+    /// the last record we processed was when we got to it. After a pause both jump; after catching up both return to ~0.
+    /// </summary>
+    private void RecordGauges(IConsumer<string?, byte[]> consumer, RuleEngine engine, Stats stats)
+    {
+        var now = clock.GetUtcNow();
+        foreach (var tp in consumer.Assignment)
+        {
+            var partition = new KeyValuePair<string, object?>("partition", tp.Partition.Value);
+            var stage = new KeyValuePair<string, object?>("stage", "order");
+            var high = consumer.GetWatermarkOffsets(tp).High;
+            var position = consumer.Position(tp);
+            if (high != Offset.Unset && position != Offset.Unset)
+            {
+                NoiseCutMetrics.ConsumerLag.Record(Math.Max(0, high.Value - position.Value), stage, partition);
+            }
+
+            if (stats.LastProducedAt.TryGetValue(tp.Partition.Value, out var produced))
+            {
+                NoiseCutMetrics.RecordAge.Record(Math.Max(0, (now - produced).TotalSeconds), stage, partition);
+            }
+        }
+
+        // The newest hour each zone has data for, as this instance sees it (Break #4: compare with the simulator's truth).
+        foreach (var count in engine.ZoneHourCounts().GroupBy(c => c.ZoneId).Select(g => g.MaxBy(c => c.HourStart)!))
+        {
+            var zone = new KeyValuePair<string, object?>("zone", count.ZoneId);
+            NoiseCutMetrics.EngineZoneHourOrders.Record(count.Denominator, zone, new("kind", "placed"));
+            NoiseCutMetrics.EngineZoneHourOrders.Record(count.Numerator, zone, new("kind", "cancelled"));
         }
     }
 
@@ -162,5 +209,7 @@ public sealed class EngineWorker(
         public long Candidates { get; set; }
 
         public long Dlq { get; set; }
+
+        public Dictionary<int, DateTimeOffset> LastProducedAt { get; } = [];
     }
 }

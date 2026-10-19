@@ -1,0 +1,147 @@
+{
+  "uid": "noisecut-overview",
+  "title": "NoiseCut overview",
+  "description": "Provisioned from deploy/observability/grafana/dashboards. Edit the JSON in git, not in the UI.",
+  "tags": ["noisecut"],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "5s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Candidates (last 5 min)",
+      "description": "Signals the engine sent, repeats included.",
+      "gridPos": { "x": 0, "y": 0, "w": 5, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum(increase(noisecut_candidates_total[5m])) or vector(0)" } ]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Notifications (last 5 min)",
+      "description": "Messages actually delivered to a channel.",
+      "gridPos": { "x": 5, "y": 0, "w": 5, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum(increase(noisecut_notifications_total[5m])) or vector(0)" } ]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Duplicate webhooks (total)",
+      "description": "Notifications the receiver got more than once (same Idempotency-Key). Target: 0.",
+      "gridPos": { "x": 10, "y": 0, "w": 5, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "sum(noisecut_sink_duplicate_receipts_total) or vector(0)" } ]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Detection latency p95 (5 min)",
+      "description": "detectedAt − triggerProducedAt, wall clock.",
+      "gridPos": { "x": 15, "y": 0, "w": 5, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 3 }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(noisecut_detection_latency_seconds_bucket[5m])))" } ]
+    },
+    {
+      "id": 5, "type": "stat", "title": "Engine consumer lag",
+      "description": "Records waiting to be processed, all partitions.",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum(noisecut_consumer_lag_records) or vector(0)" } ]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Simulator: events generated / s",
+      "description": "Ground truth: what the simulator generated.",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum by (type) (rate(noisecut_sim_events_total[1m]))", "legendFormat": "{{type}}" } ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Engine: events consumed / s",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum by (type) (rate(noisecut_events_consumed_total[1m]))", "legendFormat": "{{type}}" } ]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Candidates / min by rule",
+      "description": "Break #3: in EveryMatch mode one incident produces hundreds of these.",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum by (rule) (rate(noisecut_candidates_total[1m])) * 60", "legendFormat": "{{rule}}" } ]
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "Notifications / min by channel",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum by (channel) (rate(noisecut_notifications_total[1m])) * 60", "legendFormat": "{{channel}}" } ]
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "Detection latency",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.50, sum by (le) (rate(noisecut_detection_latency_seconds_bucket[2m])))", "legendFormat": "p50" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(noisecut_detection_latency_seconds_bucket[2m])))", "legendFormat": "p95" },
+        { "refId": "C", "expr": "histogram_quantile(0.99, sum by (le) (rate(noisecut_detection_latency_seconds_bucket[2m])))", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Delivery latency p95 by channel",
+      "description": "Includes intentional waits such as groupWait (M3).",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, channel) (rate(noisecut_delivery_latency_seconds_bucket[2m])))", "legendFormat": "{{channel}}" } ]
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Consumer lag by partition",
+      "description": "Break #1 and #2: jumps when the engine is killed or paused.",
+      "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "max by (instance, partition) (noisecut_consumer_lag_records)", "legendFormat": "{{instance}} p{{partition}}" } ]
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Age of last processed record",
+      "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "max by (instance, partition) (noisecut_record_age_seconds)", "legendFormat": "{{instance}} p{{partition}}" } ]
+    },
+    {
+      "id": 14, "type": "timeseries", "title": "Zone orders this hour: each engine vs truth",
+      "description": "Break #4: with 3 engines and no zone stage, each engine sees only part of every zone.",
+      "gridPos": { "x": 0, "y": 36, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "max by (zone) (noisecut_sim_zone_hour_orders{kind=\"placed\"})", "legendFormat": "truth {{zone}}" },
+        { "refId": "B", "expr": "max by (zone, instance) (noisecut_engine_zone_hour_orders{kind=\"placed\"})", "legendFormat": "engine {{instance}} {{zone}}" }
+      ]
+    },
+    {
+      "id": 15, "type": "timeseries", "title": "Webhook sink: receipts and duplicates / min",
+      "gridPos": { "x": 12, "y": 36, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(noisecut_sink_receipts_total[1m])) * 60", "legendFormat": "receipts" },
+        { "refId": "B", "expr": "sum(rate(noisecut_sink_duplicate_receipts_total[1m])) * 60", "legendFormat": "duplicates" }
+      ]
+    },
+    {
+      "id": 16, "type": "timeseries", "title": "Active scenarios",
+      "gridPos": { "x": 0, "y": 44, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "max by (name) (noisecut_sim_active_scenarios) > 0", "legendFormat": "{{name}}" } ]
+    },
+    {
+      "id": 17, "type": "timeseries", "title": "Chaos actions / s",
+      "gridPos": { "x": 8, "y": 44, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum by (kind) (rate(noisecut_sim_chaos_total[1m]))", "legendFormat": "{{kind}}" } ]
+    },
+    {
+      "id": 18, "type": "timeseries", "title": "Notifier intake / min (repeat = seen before)",
+      "gridPos": { "x": 16, "y": 44, "w": 8, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [ { "refId": "A", "expr": "sum by (repeat) (rate(noisecut_intake_candidates_total[1m])) * 60", "legendFormat": "repeat={{repeat}}" } ]
+    }
+  ]
+}

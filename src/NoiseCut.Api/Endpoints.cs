@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using NoiseCut.Api.Data;
 using NoiseCut.Api.Live;
+using NoiseCut.Infrastructure.Telemetry;
 using NoiseCut.Infrastructure.Webhooks;
 
 namespace NoiseCut.Api;
@@ -38,6 +39,7 @@ public static class Endpoints
             r.Id, r.Version, r.Enabled, r.UpdatedAt, r.Hits24h, Definition = JsonDocument.Parse(r.Definition).RootElement,
         })));
         api.MapGet("/stats", async (DashboardQueries q) => Results.Ok(await q.StatsAsync()));
+        api.MapGet("/truth", async (DashboardQueries q) => Results.Ok(await q.TruthAsync()));
         api.MapGet("/stream", StreamAsync);
 
         // --- admin (M1: X-Admin-Key or local bypass; cookie login arrives in M4) ---------------------------------------
@@ -48,6 +50,11 @@ public static class Endpoints
             await sim.ForwardAsync("/config", await ReadBodyAsync(request, ct), ct));
         admin.MapGet("/simulator/status", async (SimulatorClient sim, CancellationToken ct) => await sim.GetAsync("/status", ct));
         admin.MapGet("/simulator/scenarios", async (SimulatorClient sim, CancellationToken ct) => await sim.GetAsync("/scenarios", ct));
+        admin.MapGet("/simulator/chaos", async (SimulatorClient sim, CancellationToken ct) => await sim.GetAsync("/chaos", ct));
+        admin.MapPost("/simulator/chaos", async (HttpRequest request, SimulatorClient sim, CancellationToken ct) =>
+            await sim.ForwardAsync("/chaos", await ReadBodyAsync(request, ct), ct));
+        admin.MapPost("/simulator/chaos/late-burst", async (HttpRequest request, SimulatorClient sim, CancellationToken ct) =>
+            await sim.ForwardAsync("/chaos/late-burst", await ReadBodyAsync(request, ct), ct));
 
         // --- the built-in webhook sink -----------------------------------------------------------------------------------
         app.MapPost("/sinks/webhook", ReceiveWebhookAsync).DisableAntiforgery();
@@ -135,8 +142,10 @@ public static class Endpoints
         }
 
         var count = await q.RecordReceiptAsync(key, json);
+        NoiseCutMetrics.SinkReceipts.Add(1);
         if (count > 1)
         {
+            NoiseCutMetrics.SinkDuplicateReceipts.Add(1);
             logger.LogWarning("Duplicate webhook receipt #{Count} for {Key}", count, key);
         }
 

@@ -18,11 +18,13 @@ public sealed class OrderSimulation
 {
     private static readonly TimeSpan Second = TimeSpan.FromSeconds(1);
     private static readonly string[] CancelReasons = ["customer", "restaurant", "other"];
+    private static readonly TimeSpan SlowKitchenSpacing = TimeSpan.FromMinutes(4);
 
     private readonly Random _rng;
     private readonly PriorityQueue<Step, (DateTimeOffset At, long Seq)> _queue = new();
     private long _seq;
     private long _orderCounter;
+    private readonly Dictionary<string, DateTimeOffset> _lastSlowDelay = new(StringComparer.Ordinal);
 
     public OrderSimulation(int seed, DateTimeOffset simStart, double ordersPerSimMinute)
     {
@@ -133,9 +135,19 @@ public sealed class OrderSimulation
     {
         var nominal = Minutes(10, 25);
         var extra = TimeSpan.Zero;
+        var noticeAfter = Minutes(2, 5);
         if (Scenarios.IsKitchenMeltdown(order.Restaurant.Id, at))
         {
             extra = Minutes(20, 40);
+        }
+        else if (Scenarios.IsSlowKitchen(order.Restaurant.Id, at)
+                 && (!_lastSlowDelay.TryGetValue(order.Restaurant.Id, out var last) || at - last >= SlowKitchenSpacing))
+        {
+            // A "near miss": badly late orders, but never closer than 4 minutes apart, so no 10-minute window can hold
+            // the 5 that rule A needs. In event time this must never alert. Fixed notice time keeps the spacing intact.
+            extra = Minutes(16, 25);
+            noticeAfter = TimeSpan.FromMinutes(3);
+            _lastSlowDelay[order.Restaurant.Id] = at;
         }
         else
         {
@@ -153,7 +165,7 @@ public sealed class OrderSimulation
         if (extra > TimeSpan.Zero)
         {
             // The kitchen notices it is running late a few minutes in, and the predicted ETA slips (SPEC §4.2).
-            Schedule(at + Minutes(2, 5), order, EventTypes.Delayed, new JsonObject
+            Schedule(at + noticeAfter, order, EventTypes.Delayed, new JsonObject
             {
                 ["delayMinutes"] = (int)Math.Round(extra.TotalMinutes),
                 ["stage"] = "kitchen",

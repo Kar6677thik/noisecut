@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using NoiseCut.Core.Evaluation;
 using NoiseCut.Core.Serialization;
 using NoiseCut.Infrastructure.Kafka;
+using NoiseCut.Infrastructure.Telemetry;
 
 namespace NoiseCut.Notifier;
 
@@ -60,6 +61,11 @@ public sealed class IntakeWorker(
                     if (candidate is not null)
                     {
                         var outcome = await HandleWithRetryAsync(candidate, ct);
+                        NoiseCutMetrics.IntakeCandidates.Add(
+                            1,
+                            new("rule", candidate.RuleId),
+                            new("status", candidate.Status == CandidateStatus.Firing ? "firing" : "resolved"),
+                            new("repeat", !outcome.FirstTime));
                         received++;
                         repeats += outcome.FirstTime ? 0 : 1;
                         queued += outcome.DeliveriesQueued;
