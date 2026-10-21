@@ -24,7 +24,14 @@ public sealed class ApiOptions
 /// </summary>
 public sealed class AdminOptions
 {
+    /// <summary>Header key for scripts. Empty = header access disabled.</summary>
     public string Key { get; set; } = "";
+
+    /// <summary>PBKDF2 hash of the admin password (see <see cref="Security.PasswordHash"/>). Empty = browser login disabled.</summary>
+    public string PasswordHash { get; set; } = "";
+
+    /// <summary>Mark the admin cookie Secure (HTTPS only). On in deployment, where visitors reach us through Cloudflare's HTTPS.</summary>
+    public bool SecureCookies { get; set; } = true;
 
     public bool LocalBypass { get; set; }
 }

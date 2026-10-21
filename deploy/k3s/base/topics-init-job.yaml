@@ -1,0 +1,44 @@
+# One-shot: create the topics from SPEC §4.4 if they don't exist. Safe to run on every deploy (idempotent).
+# The deploy workflow deletes the previous run of this Job before applying, because a Job's pod template can't be changed in place.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: topics-init
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: topics-init
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: rpk
+          image: docker.redpanda.com/redpandadata/redpanda:v26.2.5
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              create() {
+                if rpk topic describe "$1" -X brokers=redpanda:9092 >/dev/null 2>&1; then
+                  echo "topic $1 exists"
+                else
+                  rpk topic create "$1" -p "$2" -c retention.ms="$3" -X brokers=redpanda:9092
+                fi
+              }
+              create order-events      6 604800000
+              create zone-partials     6 86400000
+              create alert-candidates  6 259200000
+              create late-events       1 259200000
+              create order-events-dlq  1 604800000
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }

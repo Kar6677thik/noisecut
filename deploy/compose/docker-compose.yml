@@ -197,6 +197,7 @@ services:
       Api__WebhookSecret: ${NOISECUT_WEBHOOK_SECRET:-local-dev-webhook-secret}
       Api__Admin__Key: ${NOISECUT_ADMIN_KEY:-local-dev-admin-key}
       Api__Admin__LocalBypass: "true"
+      Api__Admin__SecureCookies: "false"        # local http; the deployment uses https via Cloudflare
     ports:
       - "8080:8080"
     depends_on:

@@ -95,9 +95,17 @@ Each fix lands with its own commits and tests. Then the matching experiment is r
 
 ---
 
-## M4 — Deploy (GitHub Actions → home server)
+## M4 — Deploy (GitHub Actions → home server) ✅
 
-Split into two PRs if useful: **M4a CI** (can start right after M1) and **M4b CD + public**.
+> Built 2026-10-21 as one PR. The deploy script was rehearsed end to end on a throwaway k3s of the server's version
+> ([runbook](../runbooks/k3s-rehearsal.md)). The first real deploy runs after the owner's one-time [bootstrap](../runbooks/bootstrap-home-server.md).
+> Deviations:
+> - the engine is a StatefulSet, so static membership survives pod restarts (ADR-0016);
+> - the deploy is a two-pass `apply.sh` shared by CI and the rehearsal;
+> - rule editing + LISTEN/NOTIFY hot reload were deferred (SPEC §8.3), because the read-only showcase doesn't need them.
+>
+> See the [journal](../JOURNAL.md) and [`learning/M4-deploy.md`](../learning/M4-deploy.md).
+
 
 1. `ci.yml`: restore/build/test (unit + Testcontainers), build all images, `kubectl kustomize` render check.
 2. Dockerfiles: one parameterized multi-stage Dockerfile, non-root user, chiseled/alpine runtime, and `SOURCE_REVISION_ID` label.

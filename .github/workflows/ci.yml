@@ -53,3 +53,26 @@ jobs:
 
       - name: Build every service image
         run: docker compose -f deploy/compose/docker-compose.yml build
+
+  manifests:
+    name: k3s manifests render and validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # Render exactly what deploy.yml applies, then check every object against the Kubernetes 1.36 schemas.
+      - name: Render overlays
+        run: |
+          for o in home local; do
+            kubectl kustomize --load-restrictor=LoadRestrictionsNone "deploy/k3s/overlays/$o" > "rendered-$o.yaml"
+            echo "$o: $(grep -c '^kind:' "rendered-$o.yaml") objects"
+          done
+
+      - name: Validate with kubeconform
+        run: |
+          docker run --rm -v "$PWD:/w" -w /w ghcr.io/yannh/kubeconform:v0.8.0 \
+            -strict -summary -kubernetes-version 1.36.0 rendered-home.yaml rendered-local.yaml deploy/k3s/bootstrap/ci-access.yaml
+
+      - name: Shell scripts parse
+        run: bash -n scripts/deploy/apply.sh && bash -n deploy/k3s/bootstrap/make-kubeconfig.sh

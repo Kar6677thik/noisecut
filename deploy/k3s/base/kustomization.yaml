@@ -1,0 +1,54 @@
+# NoiseCut on k3s: the base. Environment-specific values (image tags, rates) live in overlays/.
+# Render:  kubectl kustomize --load-restrictor=LoadRestrictionsNone deploy/k3s/overlays/home
+# (the load-restrictor flag lets the base reuse the Grafana dashboard JSON from deploy/observability instead of copying it)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The namespace itself is created once by the owner (bootstrap/), not by CI: CI's account is scoped to it.
+namespace: noisecut
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: noisecut
+    includeSelectors: false
+
+resources:
+  - redpanda.yaml
+  - postgres.yaml
+  - mailpit.yaml
+  - topics-init-job.yaml
+  - migrator-job.yaml
+  - simulator.yaml
+  - engine.yaml
+  - notifier.yaml
+  - api.yaml
+  - prometheus.yaml
+  - grafana.yaml
+  - networkpolicies.yaml
+
+configMapGenerator:
+  # Settings shared by every NoiseCut service. Secrets (passwords, keys) are NOT here: CI creates the
+  # "noisecut-secrets" Secret from GitHub secrets on every deploy (see docs/runbooks/deploy.md).
+  - name: noisecut-config
+    literals:
+      - NoiseCut__Profile=robust
+      - Kafka__BootstrapServers=redpanda:9092
+      - Logging__Console__FormatterName=simple
+      - Metrics__Port=9464
+  - name: prometheus-config
+    files:
+      - prometheus.yml
+  - name: grafana-provisioning
+    files:
+      - datasource.yml=../../observability/grafana/provisioning/datasources/prometheus.yml
+      - dashboards.yml=../../observability/grafana/provisioning/dashboards/noisecut.yml
+  - name: grafana-dashboards
+    files:
+      - noisecut-overview.json=../../observability/grafana/dashboards/noisecut-overview.json
+
+images:
+  - name: noisecut-simulator
+  - name: noisecut-engine
+  - name: noisecut-notifier
+  - name: noisecut-api
+  - name: noisecut-migrator

@@ -40,7 +40,7 @@ public static class Endpoints
         })));
         api.MapGet("/stats", async (DashboardQueries q) => Results.Ok(await q.StatsAsync()));
         api.MapGet("/truth", async (DashboardQueries q) => Results.Ok(await q.TruthAsync()));
-        api.MapGet("/stream", StreamAsync);
+        api.MapGet("/stream", StreamAsync).RequireRateLimiting("stream");
 
         // --- admin (M1: X-Admin-Key or local bypass; cookie login arrives in M4) ---------------------------------------
         var admin = api.MapGroup("").AddEndpointFilter<AdminOnlyFilter>();

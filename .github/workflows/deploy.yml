@@ -1,0 +1,160 @@
+# CD: deploy NoiseCut to the home server (SPEC §15, ADR-0009, ADR-0016).
+#
+#  - Automatically, after the "ci" workflow succeeds on main: build + push images tagged with the commit SHA, then deploy that SHA.
+#  - Manually ("Run workflow"), with an older SHA: redeploy images that already exist in GHCR. That is the rollback.
+#
+# The runner reaches the cluster API over Tailscale (never over the internet) and authenticates as a ServiceAccount that can only
+# touch the noisecut namespace. All secrets come from GitHub secrets; see docs/runbooks/bootstrap-home-server.md.
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Full commit SHA to deploy (images must already exist in GHCR). Leave empty for the latest main."
+        required: false
+
+permissions:
+  contents: read
+  packages: write        # push images to ghcr.io/<owner>/noisecut-*
+
+# Never run two deploys at once, and never cancel one half-way.
+concurrency:
+  group: deploy-home
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io/kar6677thik
+
+jobs:
+  resolve:
+    name: decide what to deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+      build: ${{ steps.sha.outputs.build }}
+      configured: ${{ steps.configured.outputs.configured }}
+    steps:
+      # Until the one-time bootstrap is done (docs/runbooks/bootstrap-home-server.md) there is no cluster to deploy to.
+      # Images are still built and pushed; only the deploy job is skipped, with a notice instead of a red failure.
+      - id: configured
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
+        run: |
+          if [ -n "$KUBE_CONFIG_B64" ]; then echo "configured=true" >> "$GITHUB_OUTPUT"
+          else echo "configured=false" >> "$GITHUB_OUTPUT"; echo "::notice::Deploy skipped: KUBE_CONFIG_B64 is not set yet. See docs/runbooks/bootstrap-home-server.md"; fi
+      - id: sha
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"; echo "build=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.sha }}" ]; then
+            echo "sha=${{ inputs.sha }}" >> "$GITHUB_OUTPUT"; echo "build=false" >> "$GITHUB_OUTPUT"   # rollback: reuse images
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"; echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  images:
+    name: image (${{ matrix.service }})
+    needs: resolve
+    if: needs.resolve.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [Simulator, Engine, Notifier, Api, Migrator]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: name
+        run: echo "image=${REGISTRY}/noisecut-$(echo '${{ matrix.service }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          build-args: |
+            SERVICE=${{ matrix.service }}
+            GIT_SHA=${{ needs.resolve.outputs.sha }}
+          # Immutable tag = the commit. No "latest": what runs is always traceable to exactly one commit.
+          tags: ${{ steps.name.outputs.image }}:${{ needs.resolve.outputs.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  deploy:
+    name: deploy to home k3s
+    needs: [resolve, images]
+    if: always() && needs.resolve.result == 'success' && needs.resolve.outputs.configured == 'true' && (needs.images.result == 'success' || needs.images.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: home       # optional protection rules (required reviewers, etc.) can be set on this environment
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: v1.36.4      # match the server (k3s v1.36)
+
+      # Join the tailnet as an ephemeral node tagged tag:ci. The Tailscale ACL lets tag:ci reach only the API server port.
+      - uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Kubeconfig (namespace-scoped ServiceAccount)
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG_B64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+          kubectl auth can-i create deployments -n noisecut
+          kubectl version
+
+      - name: Pin image tags to ${{ needs.resolve.outputs.sha }}
+        run: |
+          sed -i "s/newTag: .*/newTag: ${{ needs.resolve.outputs.sha }}/" deploy/k3s/overlays/home/kustomization.yaml
+          grep newTag deploy/k3s/overlays/home/kustomization.yaml
+
+      - name: Apply
+        env:
+          NC_POSTGRES_PASSWORD: ${{ secrets.NC_POSTGRES_PASSWORD }}
+          NC_WEBHOOK_SECRET: ${{ secrets.NC_WEBHOOK_SECRET }}
+          NC_ADMIN_KEY: ${{ secrets.NC_ADMIN_KEY }}
+          NC_ADMIN_PASSWORD_HASH: ${{ secrets.NC_ADMIN_PASSWORD_HASH }}
+          NC_GRAFANA_ADMIN_PASSWORD: ${{ secrets.NC_GRAFANA_ADMIN_PASSWORD }}
+          GHCR_USER: ${{ github.repository_owner }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        run: bash scripts/deploy/apply.sh deploy/k3s/overlays/home
+
+      - name: Smoke test the public URL
+        run: |
+          base=https://noisecut.karthiksurkanti.in
+          for _ in $(seq 1 30); do
+            if curl -fsS "$base/healthz" >/dev/null && curl -fsS "$base/api/stats" >/dev/null; then break; fi
+            sleep 5
+          done
+          curl -fsS "$base/readyz"
+          curl -fsS -o /dev/null -w "grafana: %{http_code}\n" "$base/grafana/api/health"
+          # The read-only promise: an anonymous admin call must be refused.
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' "$base/api/scenarios/kitchen-meltdown")
+          echo "anonymous scenario injection: $code"; test "$code" = "401"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Deploy ${{ needs.resolve.outputs.sha }}"
+            echo ""
+            kubectl -n noisecut get pods -o custom-columns=POD:.metadata.name,STATUS:.status.phase,IMAGE:.spec.containers[0].image 2>/dev/null || true
+          } >> "$GITHUB_STEP_SUMMARY"

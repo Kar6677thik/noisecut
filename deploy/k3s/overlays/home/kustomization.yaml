@@ -1,0 +1,32 @@
+# The home-server deployment. CI sets every newTag to the git SHA being deployed (deploy.yml), so the cluster always runs
+# images that trace back to one commit, and a rollback is "deploy an older SHA".
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: noisecut-public
+    # Referenced from a base Deployment: kustomize can't rewrite a hash-suffixed name across the base/overlay boundary.
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - hostname=noisecut.karthiksurkanti.in
+
+images:
+  - name: noisecut-simulator
+    newName: ghcr.io/kar6677thik/noisecut-simulator
+    newTag: latest
+  - name: noisecut-engine
+    newName: ghcr.io/kar6677thik/noisecut-engine
+    newTag: latest
+  - name: noisecut-notifier
+    newName: ghcr.io/kar6677thik/noisecut-notifier
+    newTag: latest
+  - name: noisecut-api
+    newName: ghcr.io/kar6677thik/noisecut-api
+    newTag: latest
+  - name: noisecut-migrator
+    newName: ghcr.io/kar6677thik/noisecut-migrator
+    newTag: latest

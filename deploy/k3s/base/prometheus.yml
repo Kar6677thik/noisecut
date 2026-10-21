@@ -1,0 +1,29 @@
+# Prometheus in k3s: discover NoiseCut pods through the Kubernetes API, limited to this namespace, and scrape the ones labelled
+# noisecut/metrics=true on their internal metrics port 9464. Unlike DNS discovery in Compose, this also gives us each pod's labels:
+# "service" comes from the pod's app label, "instance" from the pod name (engine-0, engine-1, ...).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: noisecut
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [noisecut]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_noisecut_metrics]
+        regex: "true"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_number]
+        regex: "9464"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        target_label: service
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: instance
+
+  - job_name: redpanda
+    metrics_path: /public_metrics
+    static_configs:
+      - targets: ["redpanda:9644"]

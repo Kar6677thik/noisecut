@@ -1,0 +1,26 @@
+@page "/admin/login"
+@model NoiseCut.Api.Pages.Admin.LoginModel
+@{
+    ViewData["Title"] = "Admin login";
+}
+
+<h1>Admin login</h1>
+<p class="hint">The showcase is read-only for visitors. Changing rules, injecting scenarios and acknowledging alerts need the admin password.</p>
+
+@if (Model.Error is not null)
+{
+    <p class="flash bad">@Model.Error</p>
+}
+
+@if (!Model.Enabled)
+{
+    <p class="empty">Browser login is not configured on this deployment.</p>
+}
+else
+{
+    <form method="post" class="filters">
+        <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+        <label>Password <input name="Password" type="password" autocomplete="current-password" required autofocus /></label>
+        <button type="submit">Sign in</button>
+    </form>
+}

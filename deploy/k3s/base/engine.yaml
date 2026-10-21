@@ -1,0 +1,84 @@
+# The engine: 3 replicas sharing 6 partitions (2 each), order stage + zone stage (SPEC §3.1, M3).
+#
+# A StatefulSet, although it keeps no volume: it gives the pods *stable names* (engine-0, engine-1, engine-2). The engine's
+# Kafka static-membership id is built from the hostname (ADR-0014), so a restarted engine-1 reclaims engine-1's partitions
+# at once instead of triggering a rebalance. A Deployment's pods get a new random name on every restart.
+apiVersion: v1
+kind: Service
+metadata:
+  name: engine
+spec:
+  clusterIP: None
+  selector:
+    app: engine
+  ports:
+    - { name: metrics, port: 9464 }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: engine
+  labels:
+    noisecut/workload: "true"     # applied after the migrations (scripts/deploy/apply.sh)
+spec:
+  serviceName: engine
+  replicas: 3
+  podManagementPolicy: Parallel     # all three can start together; they coordinate through the consumer group
+  selector:
+    matchLabels:
+      app: engine
+  template:
+    metadata:
+      labels:
+        app: engine
+        noisecut/metrics: "true"
+    spec:
+      imagePullSecrets:
+        - name: noisecut-registry
+      terminationGracePeriodSeconds: 30   # time for the final checkpoint on shutdown
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: engine
+          image: noisecut-engine
+          envFrom:
+            - configMapRef: { name: noisecut-config }
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: noisecut-secrets, key: POSTGRES_PASSWORD }
+            - name: ConnectionStrings__Postgres
+              value: Host=postgres;Port=5432;Database=noisecut;Username=noisecut;Password=$(POSTGRES_PASSWORD);GSS Encryption Mode=Disable
+            - name: Engine__TimeScale
+              value: "10"
+          ports:
+            - { name: metrics, containerPort: 9464 }
+          # Workers have no HTTP API; the metrics listener answering is a good-enough sign of life.
+          livenessProbe:
+            httpGet: { path: /metrics, port: metrics }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+# During voluntary disruptions (node drain, upgrades) keep at least 2 of 3 engines running.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: engine
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: engine

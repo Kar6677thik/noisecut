@@ -1,0 +1,48 @@
+# Network policies (k3s enforces them). Default: nothing can reach a NoiseCut pod. Then two allowances:
+#   1. pods in this namespace may talk to each other (services → postgres/redpanda, prometheus → metrics, ...);
+#   2. the Api (8080) and Grafana (3000) may be reached from anywhere, because public traffic arrives via their NodePorts.
+# Redpanda, PostgreSQL, Mailpit, Prometheus and every metrics port therefore stay unreachable from outside the namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-public-api
+spec:
+  podSelector:
+    matchLabels:
+      app: api
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-public-grafana
+spec:
+  podSelector:
+    matchLabels:
+      app: grafana
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - port: 3000

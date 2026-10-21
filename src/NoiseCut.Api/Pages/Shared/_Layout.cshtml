@@ -16,7 +16,7 @@
             <a href="/alerts">Alerts</a>
             <a href="/rules">Rules</a>
             <a href="/about">About</a>
-            @if (Admin.BypassEnabled)
+            @if (Admin.IsAdmin(Context))
             {
                 <a href="/admin" class="admin-link">Admin</a>
             }
@@ -27,6 +27,16 @@
         @RenderBody()
     </main>
     <footer>
+        @if (Context.User.IsInRole(AdminGuard.Role))
+        {
+            <form method="post" action="/admin/login?handler=Logout" class="inline">
+                <button type="submit" class="link">Sign out</button>
+            </form>
+        }
+        else if (!Admin.BypassEnabled)
+        {
+            <text><a href="/admin/login" class="sub">admin login</a> · </text>
+        }
         A learning-scale real-time alerting engine. Times marked <em>IST</em> are on the simulated clock; other times are wall-clock UTC.
     </footer>
     @await RenderSectionAsync("Scripts", required: false)

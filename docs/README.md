@@ -10,8 +10,9 @@
 | How does the code actually work? | [`learning/M1-build.md`](learning/M1-build.md) (code tour: one event, end to end) |
 | How do we measure and break it? | [`learning/M2-break.md`](learning/M2-break.md) (metrics, truth log, chaos) |
 | How was each failure fixed? | [`learning/M3-prove.md`](learning/M3-prove.md) (checkpoints, event time, noise policy, zone stage) |
+| How is it deployed? | [`learning/M4-deploy.md`](learning/M4-deploy.md) (images, k3s objects, least-privilege CI) |
 | What did each experiment measure? | [`experiments/`](experiments/README.md) |
-| How do I operate it? | `runbooks/` (from M4) |
+| How do I operate it? | [`runbooks/`](runbooks/): [bootstrap](runbooks/bootstrap-home-server.md), [deploy · roll back · inspect](runbooks/deploy.md), [rotate secrets](runbooks/rotate-secrets.md), [local k3s rehearsal](runbooks/k3s-rehearsal.md) |
 | What are the final numbers? | `report/REPORT.md` (M5) |
 
 ## Suggested reading order
