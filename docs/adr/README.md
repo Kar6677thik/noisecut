@@ -21,3 +21,4 @@ Each one is short: the context, the decision, the alternatives we rejected, and 
 | [0010](0010-public-readonly-dashboard.md) | Razor Pages dashboard, public read-only, admin login | Accepted |
 | [0011](0011-dapper-and-sql-migrations.md) | Dapper + plain SQL migrations instead of EF Core | Accepted |
 | [0012](0012-event-time-with-ticks.md) | Event-time processing with source ticks for watermarks | Accepted |
+| [0013](0013-experiments-as-a-dotnet-harness.md) | Experiments run from a .NET harness, not shell scripts | Accepted |

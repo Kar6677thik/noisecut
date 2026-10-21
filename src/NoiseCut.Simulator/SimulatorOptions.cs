@@ -15,6 +15,12 @@ public sealed class SimulatorOptions
     /// <summary>Fixed sim start, for reproducible experiments. When empty, the simulator resumes after the newest event in the log, or at wall-clock now.</summary>
     public DateTimeOffset? SimStart { get; set; }
 
+    /// <summary>
+    /// Start the sim clock at this hour of today's Bengaluru time (e.g. 12 = lunch peak) instead of wall-clock now.
+    /// Experiments use it so the demand curve, and therefore the numbers, don't depend on when you happen to run them.
+    /// </summary>
+    public double? StartAtLocalHour { get; set; }
+
     /// <summary>How often a clock.tick goes to every partition (wall time).</summary>
     public TimeSpan TickInterval { get; set; } = TimeSpan.FromSeconds(1);
 

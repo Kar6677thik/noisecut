@@ -13,6 +13,10 @@
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.13" />
+    <!-- metrics (M2). The Prometheus exporter is still published as beta by the OpenTelemetry project. -->
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.20.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.20.0-beta.1" />
     <!-- tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />

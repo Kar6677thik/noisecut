@@ -15,7 +15,10 @@ public sealed record ScenarioRequest
     public double? Intensity { get; init; }
 }
 
-/// <summary>An injected incident. This is the "ground truth" an alert should match.</summary>
+/// <summary>
+/// An injected incident: the "ground truth" an alert should match. <see cref="ExpectedRule"/> is null for a negative control
+/// (a situation that looks bad but must <b>not</b> alert); any alert it causes is a false alarm.
+/// </summary>
 public sealed record ActiveScenario(
     Guid Id,
     string Name,
@@ -24,7 +27,7 @@ public sealed record ActiveScenario(
     DateTimeOffset StartsAt,
     DateTimeOffset EndsAt,
     double Intensity,
-    string ExpectedRule);
+    string? ExpectedRule);
 
 public sealed class ScenarioException(string message) : Exception(message);
 
@@ -35,8 +38,9 @@ public sealed class ScenarioBook
     public const string ZoneCancelSpike = "zone-cancel-spike";
     public const string RiderShortage = "rider-shortage";
     public const string AlertStorm = "alert-storm";
+    public const string SlowKitchen = "slow-kitchen";
 
-    public static IReadOnlyList<string> Names { get; } = [KitchenMeltdown, ZoneCancelSpike, RiderShortage, AlertStorm];
+    public static IReadOnlyList<string> Names { get; } = [KitchenMeltdown, ZoneCancelSpike, RiderShortage, AlertStorm, SlowKitchen];
 
     private readonly List<ActiveScenario> _history = [];
     private readonly Random _rng;
@@ -51,7 +55,8 @@ public sealed class ScenarioBook
     {
         var scenario = name switch
         {
-            KitchenMeltdown => Meltdown(request, now),
+            KitchenMeltdown => ForRestaurant(KitchenMeltdown, request, now, defaultMinutes: 15, expectedRule: "restaurant-delay-burst"),
+            SlowKitchen => ForRestaurant(SlowKitchen, request, now, defaultMinutes: 40, expectedRule: null),
             ZoneCancelSpike => ForZone(name, request, now, defaultMinutes: 60, defaultIntensity: 3, expectedRule: "zone-cancellation-spike"),
             RiderShortage => ForZone(name, request, now, defaultMinutes: 20, defaultIntensity: 1, expectedRule: "stuck-pickup"),
             AlertStorm => Storm(request, now),
@@ -64,13 +69,16 @@ public sealed class ScenarioBook
     public bool IsKitchenMeltdown(string restaurantId, DateTimeOffset t) =>
         ActiveAt(t).Any(s => s.Name is KitchenMeltdown or AlertStorm && s.Restaurants.Contains(restaurantId));
 
+    public bool IsSlowKitchen(string restaurantId, DateTimeOffset t) =>
+        ActiveAt(t).Any(s => s.Name == SlowKitchen && s.Restaurants.Contains(restaurantId));
+
     public double CancelMultiplier(string zoneId, DateTimeOffset t) =>
         ActiveAt(t).Where(s => s.Name == ZoneCancelSpike && s.Target == zoneId).Select(s => s.Intensity).DefaultIfEmpty(1).Max();
 
     public bool IsRiderShortage(string zoneId, DateTimeOffset t) =>
         ActiveAt(t).Any(s => s.Name == RiderShortage && s.Target == zoneId);
 
-    private ActiveScenario Meltdown(ScenarioRequest request, DateTimeOffset now)
+    private ActiveScenario ForRestaurant(string name, ScenarioRequest request, DateTimeOffset now, double defaultMinutes, string? expectedRule)
     {
         var restaurant = request.Target ?? Topology.Restaurants[_rng.Next(Topology.Restaurants.Count)].Id;
         if (Topology.FindRestaurant(restaurant) is null)
@@ -78,8 +86,8 @@ public sealed class ScenarioBook
             throw new ScenarioException($"unknown restaurant '{restaurant}'");
         }
 
-        var minutes = Positive(request.DurationMinutes, 15);
-        return new ActiveScenario(Guid.CreateVersion7(), KitchenMeltdown, restaurant, [restaurant], now, now.AddMinutes(minutes), 1, "restaurant-delay-burst");
+        var minutes = Positive(request.DurationMinutes, defaultMinutes);
+        return new ActiveScenario(Guid.CreateVersion7(), name, restaurant, [restaurant], now, now.AddMinutes(minutes), 1, expectedRule);
     }
 
     private ActiveScenario Storm(ScenarioRequest request, DateTimeOffset now)

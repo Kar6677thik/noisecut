@@ -1,6 +1,8 @@
 using Dapper;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 using Npgsql;
+using NoiseCut.Infrastructure.Telemetry;
 
 namespace NoiseCut.Notifier;
 
@@ -92,6 +94,13 @@ public sealed class DeliveryDispatcher(
                     "UPDATE deliveries SET status = 'sent', sent_at = now(), attempts = attempts + 1, last_error = NULL WHERE id = @Id",
                     new { row.Id },
                     tx);
+                var channelTag = new KeyValuePair<string, object?>("channel", row.Channel);
+                NoiseCutMetrics.Notifications.Add(1, channelTag, new("kind", row.Kind));
+                if (TriggerProducedAt(row.Payload) is { } producedAt)
+                {
+                    NoiseCutMetrics.DeliveryLatency.Record((DateTimeOffset.UtcNow - producedAt).TotalSeconds, channelTag);
+                }
+
                 continue;
             }
 
@@ -108,8 +117,10 @@ public sealed class DeliveryDispatcher(
                 new { row.Id, attempts, error, dead, delaySeconds = Backoff(attempts, dispatcher.MaxBackoff).TotalSeconds },
                 tx);
 
+            NoiseCutMetrics.DeliveryFailures.Add(1, new KeyValuePair<string, object?>("channel", row.Channel));
             if (dead)
             {
+                NoiseCutMetrics.DeliveriesDead.Add(1, new KeyValuePair<string, object?>("channel", row.Channel));
                 logger.LogError("Delivery {Id} ({Channel}) is dead after {Attempts} attempts: {Error}", row.Id, row.Channel, attempts, error);
             }
             else
@@ -120,6 +131,19 @@ public sealed class DeliveryDispatcher(
 
         await tx.CommitAsync(ct);
         return rows.Count;
+    }
+
+    private static DateTimeOffset? TriggerProducedAt(string payload)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(payload);
+            return doc.RootElement.TryGetProperty("triggerProducedAt", out var p) && p.TryGetDateTimeOffset(out var t) ? t : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>

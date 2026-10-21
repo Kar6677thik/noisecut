@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: noisecut
+    folder: NoiseCut
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false     # edit the JSON in git, not in the UI
+    options:
+      path: /var/lib/grafana/dashboards

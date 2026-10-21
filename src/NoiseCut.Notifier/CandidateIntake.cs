@@ -5,6 +5,7 @@ using Npgsql;
 using NoiseCut.Core.Evaluation;
 using NoiseCut.Core.Notifications;
 using NoiseCut.Core.Serialization;
+using NoiseCut.Infrastructure.Telemetry;
 
 namespace NoiseCut.Notifier;
 
@@ -105,6 +106,7 @@ public sealed class CandidateIntake(NpgsqlDataSource db, RuleCatalog rules, IOpt
         else
         {
             logger.LogDebug("Duplicate {Status} for {AlertKey} suppressed (dedup)", status, c.AlertKey);
+            NoiseCutMetrics.Suppressed.Add(1, new("rule", c.RuleId), new("reason", "dedup"));
         }
 
         await tx.CommitAsync(ct);

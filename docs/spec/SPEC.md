@@ -274,7 +274,7 @@ Semantics:
 ```
 
 Semantics:
-- `rate = cancelled / placed` for the zone in the current event-time hour. The baseline is the same zone and hour-of-week 7 days earlier, read from `zone_hourly_stats`. If that exact hour is missing, the lookup steps back one week at a time to the most recent hour with the same hour-of-week. *(M1: the sim clock runs 10× faster than the wall clock, so it outruns the seeded week in about 17 real hours.)*
+- `rate = cancelled / placed` for the zone in the current event-time hour. The baseline is the same zone and hour-of-week 7 days earlier, read from `zone_hourly_stats`. If that exact hour is missing, the lookup steps back one week at a time to the most recent hour with the same hour-of-week. *(M1: the sim clock runs 10× faster than the wall clock, so it outruns the seeded week in about 17 real hours.)* If nothing exists further back, it steps *forward* to the nearest later week. *(M2: an experiment that pinned the sim clock to earlier today fell just before the seeded week, used the 2% floor, and raised false spikes at a normal 3.5% peak rate.)*
 - **Guards against noise.** Do not evaluate until `placed ≥ minDenominator`, because 2 cancellations out of 3 orders means nothing. The baseline rate is floored: `effective = max(baseline, minBaselineRate)`. A zero or missing baseline therefore can't make a spike "infinite".
 - *M1 change: `minDenominator` 20 → 300.* With 200, the no-incident scenario test (`ScenarioDetectionTests`, seed 1) raised a false spike within 2 simulated hours of normal traffic. The cause is binomial noise: at n = 200 and a true rate of 3.5%, reaching 2× the baseline is only about 2 standard deviations away, and the rule re-checks every minute. A rough estimate for n = 300 puts the chance per evaluation near 0.05%. The no-incident tests (3 seeds × 2 h) now pass. The trade-off is that the rule can only fire once 300 orders have arrived in the hour, so quiet hours are never evaluated. Guards are statistics, not decoration.
 - This is a **non-monotonic** condition: the ratio can rise and then fall. It is evaluated at every pane close once the guard passes, and at most one episode exists per (zone, hour). The episode resolves when the watermark closes the hour.
@@ -510,9 +510,16 @@ A changed rule version starts with fresh state (§5).
 | `zone-cancel-spike` | One zone: cancellation probability ×3 for 1 h | B |
 | `rider-shortage` | One zone: pickup 25–40 m after ready | C (grouped per restaurant) |
 | `alert-storm` | Many restaurants in a zone melt down at once | A + grouping/cooldown demo |
+| `slow-kitchen` (M2) | One restaurant: badly late orders (16–25 min), but never closer than 4 min apart | **none**: a *negative control*. In event time no 10-minute window can hold 5, so any rule-A alert it causes is false (Break #2) |
 
-**Chaos knobs:** `OutOfOrderProbability` + `MaxHoldBack` (delays *sending* without changing `occurredAt`),
-`DuplicateProbability` (resend the same `eventId`), `LateBurst` (hold a batch past allowed lateness).
+**Chaos knobs** (M2, `GET/POST /chaos` on the simulator, forwarded by the Api at `/api/simulator/chaos`):
+`OutOfOrderProbability` + `MaxHoldBackSeconds` (wall), which delay *sending* without changing `occurredAt`;
+`DuplicateProbability`, which resends the same `eventId`; and `POST /chaos/late-burst {seconds}`, which holds every order event
+for that long while ticks keep flowing, then releases them together. Ticks are never delayed: time keeps moving, which is exactly
+what makes held events *late*.
+
+**Truth log** (M2): every scenario is written to `sim_scenarios`, and `/api/truth` grades alerts against it (see `docs/experiments/README.md`).
+`Simulator:StartAtLocalHour` pins the sim clock to a fixed Bengaluru hour, so experiments see the same demand curve whenever they are run.
 
 ---
 
@@ -535,6 +542,35 @@ Logs are structured JSON on stdout.
 | `noisecut_sink_duplicate_receipts_total` | counter | — |
 | `noisecut_checkpoint_duration_seconds` | histogram | `stage` |
 | consumer lag | gauge | from Redpanda's own metrics |
+
+**As implemented in M2** (`Infrastructure/Telemetry/NoiseCutMetrics.cs`). The OpenTelemetry Prometheus exporter adds `_total` to
+counters and `_seconds` to instruments with unit `s`.
+
+| Metric | Type | Labels | Service |
+|--------|------|--------|---------|
+| `noisecut_events_consumed_total` | counter | `stage`, `type` | engine |
+| `noisecut_candidates_total` | counter | `rule`, `status` | engine |
+| `noisecut_detection_latency_seconds` | histogram | `rule` | engine |
+| `noisecut_consumer_lag_records` | gauge | `stage`, `partition` | engine (computed by the consumer: high watermark − position) |
+| `noisecut_record_age_seconds` | gauge | `stage`, `partition` | engine (wall age of the last record processed) |
+| `noisecut_engine_zone_hour_orders` | gauge | `zone`, `kind` | engine (what *this* instance counts for rule B) |
+| `noisecut_dead_lettered_total` | counter | — | engine |
+| `noisecut_intake_candidates_total` | counter | `rule`, `status`, `repeat` | notifier |
+| `noisecut_suppressed_total` | counter | `rule`, `reason` | notifier |
+| `noisecut_notifications_total` | counter | `channel`, `kind` | notifier |
+| `noisecut_delivery_latency_seconds` | histogram | `channel` | notifier |
+| `noisecut_delivery_failures_total`, `noisecut_deliveries_dead_total` | counter | `channel` | notifier |
+| `noisecut_sink_receipts_total`, `noisecut_sink_duplicate_receipts_total` | counter | — | api |
+| `noisecut_sim_events_total` | counter | `type`, `zone` | simulator (ground truth) |
+| `noisecut_sim_zone_hour_orders` | gauge | `zone`, `kind` | simulator (ground truth for the current sim hour) |
+| `noisecut_sim_active_scenarios`, `noisecut_sim_orders_per_minute`, `noisecut_sim_chaos_total` | gauge/counter | `name` / — / `kind` | simulator |
+
+`noisecut_watermark_lag_seconds`, `noisecut_late_events_total` and `noisecut_checkpoint_duration_seconds` arrive in M3, with the
+event-time and checkpoint code they describe. Consumer lag is measured by the engine itself rather than Redpanda: it is simpler,
+and it works per replica.
+
+Locally: Prometheus at http://localhost:9090 (scrapes every service on its internal port 9464 every 5 s), and Grafana at
+http://localhost:3000 (anonymous Viewer; dashboard provisioned from `deploy/observability/grafana/dashboards/`).
 
 **Latency definitions** (both are wall clock, so the sim speed-up doesn't distort them):
 - **Detection latency** = `detectedAt − triggerProducedAt`. The trigger is the event (or tick, for absence timers) that made the condition true. This is the "X s p95" in the résumé line.

@@ -1,0 +1,896 @@
+{
+  "experiment": "out-of-order",
+  "startedAt": "2026-10-19T13:27:20.2061794+00:00",
+  "durationSeconds": 1008,
+  "commit": "04db4c5\u002Bdirty",
+  "machine": {
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "logicalCpus": 14,
+    "docker": "14 CPUs, 7751802880 bytes, server 28.4.0"
+  },
+  "configuration": {
+    "profile": "naive",
+    "serviceOverrides": {
+      "engine": {
+        "Engine__EmitMode": "OnTransition"
+      },
+      "simulator": {
+        "Simulator__StartAtLocalHour": "12"
+      }
+    },
+    "chaosSeconds": 360,
+    "pauseSeconds": 120
+  },
+  "results": {
+    "partA": {
+      "simHours": 1.42,
+      "falseAlertsByRule": {
+        "stuck-pickup": 61
+      },
+      "falseAlertsPerSimHour": {
+        "stuck-pickup": 43.1
+      },
+      "ordersCreated": 26877,
+      "eventsHeldBack": 652,
+      "falseAlertsWhere": [
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-025",
+          "groupKey": "r-025",
+          "alerts": 4
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-012",
+          "groupKey": "r-012",
+          "alerts": 4
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-021",
+          "groupKey": "r-021",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-055",
+          "groupKey": "r-055",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-050",
+          "groupKey": "r-050",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-001",
+          "groupKey": "r-001",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-059",
+          "groupKey": "r-059",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-052",
+          "groupKey": "r-052",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-013",
+          "groupKey": "r-013",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-014",
+          "groupKey": "r-014",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-004",
+          "groupKey": "r-004",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-035",
+          "groupKey": "r-035",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-003",
+          "groupKey": "r-003",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-028",
+          "groupKey": "r-028",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-030",
+          "groupKey": "r-030",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-031",
+          "groupKey": "r-031",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-034",
+          "groupKey": "r-034",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-036",
+          "groupKey": "r-036",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-038",
+          "groupKey": "r-038",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-041",
+          "groupKey": "r-041",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-042",
+          "groupKey": "r-042",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-044",
+          "groupKey": "r-044",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-045",
+          "groupKey": "r-045",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-047",
+          "groupKey": "r-047",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-054",
+          "groupKey": "r-054",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-057",
+          "groupKey": "r-057",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-058",
+          "groupKey": "r-058",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-060",
+          "groupKey": "r-060",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-002",
+          "groupKey": "r-002",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-005",
+          "groupKey": "r-005",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-006",
+          "groupKey": "r-006",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-008",
+          "groupKey": "r-008",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-009",
+          "groupKey": "r-009",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-017",
+          "groupKey": "r-017",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-018",
+          "groupKey": "r-018",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-020",
+          "groupKey": "r-020",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-023",
+          "groupKey": "r-023",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-024",
+          "groupKey": "r-024",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-026",
+          "groupKey": "r-026",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-027",
+          "groupKey": "r-027",
+          "alerts": 1
+        }
+      ]
+    },
+    "partB": {
+      "falseAlertsDuringControl": {},
+      "falseAlertsAfterPauseTotal": {
+        "restaurant-delay-burst": 6,
+        "stuck-pickup": 1428
+      },
+      "pauseSeconds": 120,
+      "lagRecordsBeforeResume": 27207,
+      "scenarios": [
+        {
+          "id": "01a15461-ca56-7bb4-b315-a047c16ff3e3",
+          "name": "slow-kitchen",
+          "target": "r-005",
+          "expectedRule": null,
+          "startsAt": "2026-10-19T06:35:15\u002B00:00",
+          "endsAt": "2026-10-19T08:35:15\u002B00:00",
+          "injectedAt": "2026-10-19T13:37:37.503317\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 22,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15461-caec-7cf2-a63e-f99d3641ffa4",
+          "name": "slow-kitchen",
+          "target": "r-015",
+          "expectedRule": null,
+          "startsAt": "2026-10-19T06:35:17\u002B00:00",
+          "endsAt": "2026-10-19T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-19T13:37:37.517637\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 32,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15461-caf2-7148-92d1-bd70f089bf43",
+          "name": "slow-kitchen",
+          "target": "r-025",
+          "expectedRule": null,
+          "startsAt": "2026-10-19T06:35:17\u002B00:00",
+          "endsAt": "2026-10-19T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-19T13:37:37.52298\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 30,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15461-caf6-7ef6-a3dc-5546f9d72175",
+          "name": "slow-kitchen",
+          "target": "r-035",
+          "expectedRule": null,
+          "startsAt": "2026-10-19T06:35:17\u002B00:00",
+          "endsAt": "2026-10-19T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-19T13:37:37.527058\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 28,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15461-caf9-7a1a-84f5-5a41e3a4d67b",
+          "name": "slow-kitchen",
+          "target": "r-045",
+          "expectedRule": null,
+          "startsAt": "2026-10-19T06:35:17\u002B00:00",
+          "endsAt": "2026-10-19T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-19T13:37:37.529741\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 19,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15461-cafc-7d3d-a38d-f45d1958c849",
+          "name": "slow-kitchen",
+          "target": "r-055",
+          "expectedRule": null,
+          "startsAt": "2026-10-19T06:35:17\u002B00:00",
+          "endsAt": "2026-10-19T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-19T13:37:37.532497\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 26,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        }
+      ],
+      "rules": [
+        {
+          "ruleId": "restaurant-delay-burst",
+          "alerts": 6,
+          "truePositives": 0,
+          "falsePositives": 6
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "alerts": 1428,
+          "truePositives": 0,
+          "falsePositives": 1428
+        }
+      ],
+      "falseAlertsWhere": [
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-006",
+          "groupKey": "r-006",
+          "alerts": 37
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-058",
+          "groupKey": "r-058",
+          "alerts": 34
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-036",
+          "groupKey": "r-036",
+          "alerts": 33
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-049",
+          "groupKey": "r-049",
+          "alerts": 33
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-023",
+          "groupKey": "r-023",
+          "alerts": 31
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-015",
+          "groupKey": "r-015",
+          "alerts": 31
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-029",
+          "groupKey": "r-029",
+          "alerts": 30
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-057",
+          "groupKey": "r-057",
+          "alerts": 30
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-008",
+          "groupKey": "r-008",
+          "alerts": 30
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-019",
+          "groupKey": "r-019",
+          "alerts": 29
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-009",
+          "groupKey": "r-009",
+          "alerts": 29
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-025",
+          "groupKey": "r-025",
+          "alerts": 29
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-032",
+          "groupKey": "r-032",
+          "alerts": 28
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-011",
+          "groupKey": "r-011",
+          "alerts": 28
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-054",
+          "groupKey": "r-054",
+          "alerts": 28
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-035",
+          "groupKey": "r-035",
+          "alerts": 27
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-002",
+          "groupKey": "r-002",
+          "alerts": 27
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-013",
+          "groupKey": "r-013",
+          "alerts": 27
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-046",
+          "groupKey": "r-046",
+          "alerts": 26
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-028",
+          "groupKey": "r-028",
+          "alerts": 26
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-044",
+          "groupKey": "r-044",
+          "alerts": 26
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-027",
+          "groupKey": "r-027",
+          "alerts": 26
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-055",
+          "groupKey": "r-055",
+          "alerts": 25
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-016",
+          "groupKey": "r-016",
+          "alerts": 25
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-060",
+          "groupKey": "r-060",
+          "alerts": 24
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-001",
+          "groupKey": "r-001",
+          "alerts": 24
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-020",
+          "groupKey": "r-020",
+          "alerts": 24
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-042",
+          "groupKey": "r-042",
+          "alerts": 23
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-018",
+          "groupKey": "r-018",
+          "alerts": 23
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-031",
+          "groupKey": "r-031",
+          "alerts": 23
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-040",
+          "groupKey": "r-040",
+          "alerts": 23
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-004",
+          "groupKey": "r-004",
+          "alerts": 23
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-014",
+          "groupKey": "r-014",
+          "alerts": 22
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-024",
+          "groupKey": "r-024",
+          "alerts": 22
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-053",
+          "groupKey": "r-053",
+          "alerts": 22
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-050",
+          "groupKey": "r-050",
+          "alerts": 22
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-012",
+          "groupKey": "r-012",
+          "alerts": 22
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-043",
+          "groupKey": "r-043",
+          "alerts": 22
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-047",
+          "groupKey": "r-047",
+          "alerts": 22
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-056",
+          "groupKey": "r-056",
+          "alerts": 21
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-010",
+          "groupKey": "r-010",
+          "alerts": 21
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-005",
+          "groupKey": "r-005",
+          "alerts": 21
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-038",
+          "groupKey": "r-038",
+          "alerts": 21
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-034",
+          "groupKey": "r-034",
+          "alerts": 20
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-021",
+          "groupKey": "r-021",
+          "alerts": 20
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-051",
+          "groupKey": "r-051",
+          "alerts": 20
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-030",
+          "groupKey": "r-030",
+          "alerts": 20
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-033",
+          "groupKey": "r-033",
+          "alerts": 20
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-003",
+          "groupKey": "r-003",
+          "alerts": 20
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-039",
+          "groupKey": "r-039",
+          "alerts": 20
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-022",
+          "groupKey": "r-022",
+          "alerts": 20
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-052",
+          "groupKey": "r-052",
+          "alerts": 19
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-048",
+          "groupKey": "r-048",
+          "alerts": 19
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-045",
+          "groupKey": "r-045",
+          "alerts": 18
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-026",
+          "groupKey": "r-026",
+          "alerts": 17
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-037",
+          "groupKey": "r-037",
+          "alerts": 17
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-007",
+          "groupKey": "r-007",
+          "alerts": 17
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-017",
+          "groupKey": "r-017",
+          "alerts": 16
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-041",
+          "groupKey": "r-041",
+          "alerts": 15
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-059",
+          "groupKey": "r-059",
+          "alerts": 10
+        },
+        {
+          "ruleId": "restaurant-delay-burst",
+          "entityKey": "r-035",
+          "groupKey": "z-04",
+          "alerts": 1
+        },
+        {
+          "ruleId": "restaurant-delay-burst",
+          "entityKey": "r-055",
+          "groupKey": "z-06",
+          "alerts": 1
+        },
+        {
+          "ruleId": "restaurant-delay-burst",
+          "entityKey": "r-045",
+          "groupKey": "z-05",
+          "alerts": 1
+        },
+        {
+          "ruleId": "restaurant-delay-burst",
+          "entityKey": "r-015",
+          "groupKey": "z-02",
+          "alerts": 1
+        },
+        {
+          "ruleId": "restaurant-delay-burst",
+          "entityKey": "r-005",
+          "groupKey": "z-01",
+          "alerts": 1
+        },
+        {
+          "ruleId": "restaurant-delay-burst",
+          "entityKey": "r-025",
+          "groupKey": "z-03",
+          "alerts": 1
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "t": 0,
+      "step": "building images"
+    },
+    {
+      "t": 0,
+      "step": "$ docker compose build"
+    },
+    {
+      "t": 22.5,
+      "step": "=== out-of-order (profile naive) ==="
+    },
+    {
+      "t": 22.5,
+      "step": "PART A: out-of-order delivery, no incidents"
+    },
+    {
+      "t": 22.5,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 22.5,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 25.6,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 35.5,
+      "step": "stack ready; sim time 2026-10-19T06:30:16\u002B00:00, demand factor 1"
+    },
+    {
+      "t": 35.5,
+      "step": "waiting 30s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 65.5,
+      "step": "chaos on: 1% of events held back up to 60 s"
+    },
+    {
+      "t": 65.5,
+      "step": "waiting 360s: out-of-order traffic"
+    },
+    {
+      "t": 425.6,
+      "step": "chaos off"
+    },
+    {
+      "t": 425.6,
+      "step": "waiting 150s: timers armed during chaos (20 sim min = 2 wall min) come due"
+    },
+    {
+      "t": 575.6,
+      "step": "PART B: consumer lag with near-miss restaurants, no incidents"
+    },
+    {
+      "t": 575.6,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 575.6,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 578,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 587.1,
+      "step": "stack ready; sim time 2026-10-19T06:30:15\u002B00:00, demand factor 1"
+    },
+    {
+      "t": 587.1,
+      "step": "waiting 30s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 617.3,
+      "step": "slow-kitchen at 6 restaurants (bad delays, never 5 within 10 min)"
+    },
+    {
+      "t": 617.3,
+      "step": "waiting 180s: control period: engine keeps up"
+    },
+    {
+      "t": 797.4,
+      "step": "$ docker compose pause engine"
+    },
+    {
+      "t": 797.6,
+      "step": "waiting 120s: engine paused: the backlog builds up"
+    },
+    {
+      "t": 917.6,
+      "step": "$ docker compose exec -T redpanda rpk group describe noisecut-engine"
+    },
+    {
+      "t": 917.9,
+      "step": "$ docker compose unpause engine"
+    },
+    {
+      "t": 918.1,
+      "step": "engine resumed"
+    },
+    {
+      "t": 918.1,
+      "step": "waiting 90s: engine catches up"
+    }
+  ]
+}

@@ -5,12 +5,14 @@ using NoiseCut.Api.Data;
 using NoiseCut.Api.Live;
 using NoiseCut.Infrastructure;
 using NoiseCut.Infrastructure.Postgres;
+using NoiseCut.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 var profile = builder.Configuration.ApplyProfile();
 
 builder.Services.Configure<ApiOptions>(builder.Configuration.GetSection(ApiOptions.Section));
 builder.Services.AddNoiseCutPostgres(builder.Configuration);
+builder.Services.AddNoiseCutTelemetry(builder.Configuration, "noisecut-api");
 builder.Services.AddSingleton<DashboardQueries>();
 builder.Services.AddSingleton<AdminGuard>();
 builder.Services.AddSingleton<FeedHub>();

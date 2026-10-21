@@ -49,6 +49,36 @@ public sealed record Stats(
     long SinkReceipts,
     long SinkDuplicates);
 
+public sealed record ScenarioOutcome(
+    Guid Id,
+    string Name,
+    string Target,
+    string? ExpectedRule,
+    DateTimeOffset StartsAt,
+    DateTimeOffset EndsAt,
+    DateTimeOffset InjectedAt,
+    long MatchingAlerts,
+    long OtherAlerts,
+    double? SecondsToDetect,
+    long Candidates)
+{
+    /// <summary>Null for negative controls, which have nothing to detect.</summary>
+    public bool? Detected => ExpectedRule is null ? null : MatchingAlerts > 0;
+}
+
+public sealed record RuleGrade(string RuleId, long Alerts, long TruePositives, long FalsePositives);
+
+public sealed record FalseAlert(string AlertKey, string RuleId, string EntityKey, DateTimeOffset FirstDetectedAt);
+
+public sealed record FalseAlertGroup(string RuleId, string EntityKey, string GroupKey, long Alerts);
+
+public sealed record TruthReport(
+    IReadOnlyList<ScenarioOutcome> Scenarios,
+    IReadOnlyList<RuleGrade> Rules,
+    IReadOnlyList<FalseAlert> RecentFalseAlerts,
+    IReadOnlyList<FalseAlertGroup> FalseAlertsWhere,
+    Stats Totals);
+
 /// <summary>All dashboard reads. Plain SQL via Dapper (ADR-0011); every query is a single round trip.</summary>
 public sealed class DashboardQueries(NpgsqlDataSource db)
 {
@@ -160,6 +190,47 @@ public sealed class DashboardQueries(NpgsqlDataSource db)
             RETURNING receive_count
             """,
             new { idempotencyKey, body });
+    }
+
+    /// <summary>Grades alerts against the simulator's truth log (migration 0002): per scenario, and per rule.</summary>
+    public async Task<TruthReport> TruthAsync()
+    {
+        await using var conn = await db.OpenConnectionAsync();
+        var scenarios = await conn.QueryAsync<ScenarioOutcome>(
+            """
+            SELECT id AS Id, name AS Name, target AS Target, expected_rule AS ExpectedRule, starts_at AS StartsAt, ends_at AS EndsAt,
+                   injected_at AS InjectedAt, matching_alerts AS MatchingAlerts, other_alerts AS OtherAlerts,
+                   seconds_to_detect::double precision AS SecondsToDetect, candidates::bigint AS Candidates
+            FROM scenario_outcomes ORDER BY injected_at
+            """);
+        var rules = await conn.QueryAsync<RuleGrade>(
+            """
+            SELECT rule_id AS RuleId, count(*) AS Alerts,
+                   count(*) FILTER (WHERE true_positive) AS TruePositives,
+                   count(*) FILTER (WHERE NOT true_positive) AS FalsePositives
+            FROM alert_classification GROUP BY rule_id ORDER BY rule_id
+            """);
+        var falseAlerts = await conn.QueryAsync<FalseAlert>(
+            """
+            SELECT alert_key AS AlertKey, rule_id AS RuleId, entity_key AS EntityKey, first_detected_at AS FirstDetectedAt
+            FROM alert_classification WHERE NOT true_positive ORDER BY first_detected_at DESC LIMIT 50
+            """);
+        // Where the false alarms landed: per rule and group (restaurant for order alerts, zone for restaurant alerts).
+        var falseGroups = await conn.QueryAsync<FalseAlertGroup>(
+            """
+            SELECT c.rule_id AS RuleId, c.entity_key AS EntityKey, a.group_key AS GroupKey, count(*) AS Alerts
+            FROM alert_classification c JOIN alerts a ON a.alert_key = c.alert_key
+            WHERE NOT c.true_positive AND c.rule_id <> 'stuck-pickup'
+            GROUP BY c.rule_id, c.entity_key, a.group_key
+            UNION ALL
+            SELECT c.rule_id, a.group_key, a.group_key, count(*)
+            FROM alert_classification c JOIN alerts a ON a.alert_key = c.alert_key
+            WHERE NOT c.true_positive AND c.rule_id = 'stuck-pickup'
+            GROUP BY c.rule_id, a.group_key
+            ORDER BY 4 DESC
+            LIMIT 100
+            """);
+        return new TruthReport(scenarios.AsList(), rules.AsList(), falseAlerts.AsList(), falseGroups.AsList(), await StatsAsync());
     }
 
     public async Task<bool> PingAsync(CancellationToken ct)

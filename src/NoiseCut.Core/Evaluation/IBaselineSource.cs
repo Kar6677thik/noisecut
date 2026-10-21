@@ -10,6 +10,8 @@ public interface IBaselineSource
     double? GetRate(string zoneId, DateTimeOffset hourStart);
 }
 
+public sealed record ZoneHourCount(string ZoneId, DateTimeOffset HourStart, long Numerator, long Denominator);
+
 public sealed class NoBaseline : IBaselineSource
 {
     public static readonly NoBaseline Instance = new();
