@@ -1,5 +1,8 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NoiseCut.Core.Events;
 using NoiseCut.Core.Rules;
+using NoiseCut.Core.Serialization;
 
 namespace NoiseCut.Core.Evaluation;
 
@@ -15,17 +18,27 @@ public interface IRuleEvaluator
     void OnEvent(OrderEvent evt, DateTimeOffset time, EvaluationContext ctx);
 
     void OnWatermark(DateTimeOffset watermark, EvaluationContext ctx);
+
+    /// <summary>
+    /// Everything needed to continue exactly where this instance left off, as JSON (checkpointed with the Kafka offset, SPEC §6.3).
+    /// Restoring it into a fresh evaluator and replaying the same records must produce the same candidates.
+    /// </summary>
+    JsonNode SaveState();
+
+    void LoadState(JsonNode state);
 }
 
 public static class RuleEvaluators
 {
-    public static IRuleEvaluator Create(Rule rule, IBaselineSource baselines) => rule.Definition.Kind switch
-    {
-        RuleKind.WindowedCount => new WindowedCountEvaluator(rule),
-        RuleKind.RatioVsBaseline => new RatioVsBaselineEvaluator(rule, baselines),
-        RuleKind.Absence => new AbsenceEvaluator(rule),
-        _ => throw new ArgumentOutOfRangeException(nameof(rule), rule.Definition.Kind, "unknown rule kind"),
-    };
+    public static IRuleEvaluator Create(Rule rule, IBaselineSource baselines, EngineRole role = EngineRole.Single, int partition = 0) =>
+        rule.Definition.Kind switch
+        {
+            RuleKind.WindowedCount => new WindowedCountEvaluator(rule),
+            RuleKind.RatioVsBaseline when role == EngineRole.Order => new ZonePartialEmitter(rule, partition),
+            RuleKind.RatioVsBaseline => new RatioVsBaselineEvaluator(rule, baselines),
+            RuleKind.Absence => new AbsenceEvaluator(rule),
+            _ => throw new ArgumentOutOfRangeException(nameof(rule), rule.Definition.Kind, "unknown rule kind"),
+        };
 
     internal static bool Selects(EventSelector selector, OrderEvent evt) =>
         evt.Type == selector.EventType
@@ -41,4 +54,13 @@ public static class RuleEvaluators
         ConditionOp.GteMultiple => "gte_multiple",
         _ => op.ToString(),
     };
+}
+
+/// <summary>State is plain JSON (SPEC §6.3: readable for learning); these helpers keep the evaluators free of serializer details.</summary>
+internal static class StateJson
+{
+    public static JsonNode To<T>(T value) => JsonSerializer.SerializeToNode(value, NoiseCutJson.Options)!;
+
+    public static T From<T>(JsonNode node) => node.Deserialize<T>(NoiseCutJson.Options)
+        ?? throw new JsonException($"empty {typeof(T).Name} state");
 }

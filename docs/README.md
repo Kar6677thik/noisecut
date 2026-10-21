@@ -9,6 +9,7 @@
 | What concepts do I need to understand it? | [`learning/CONCEPTS.md`](learning/CONCEPTS.md) |
 | How does the code actually work? | [`learning/M1-build.md`](learning/M1-build.md) (code tour: one event, end to end) |
 | How do we measure and break it? | [`learning/M2-break.md`](learning/M2-break.md) (metrics, truth log, chaos) |
+| How was each failure fixed? | [`learning/M3-prove.md`](learning/M3-prove.md) (checkpoints, event time, noise policy, zone stage) |
 | What did each experiment measure? | [`experiments/`](experiments/README.md) |
 | How do I operate it? | `runbooks/` (from M4) |
 | What are the final numbers? | `report/REPORT.md` (M5) |

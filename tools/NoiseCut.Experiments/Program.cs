@@ -13,10 +13,10 @@ var profile = Environment.GetEnvironmentVariable("NOISECUT_PROFILE") ?? "naive";
 var adminKey = Environment.GetEnvironmentVariable("NOISECUT_ADMIN_KEY") ?? "local-dev-admin-key";
 var repoRoot = FindRepoRoot();
 
-var experiments = command == "all" ? ["restart", "out-of-order", "storm", "scale"] : new[] { command };
-if (experiments.Any(e => e is not ("restart" or "out-of-order" or "storm" or "scale")))
+var experiments = command == "all" ? ["restart", "out-of-order", "storm", "scale", "load"] : new[] { command };
+if (experiments.Any(e => e is not ("restart" or "out-of-order" or "storm" or "scale" or "load")))
 {
-    Console.WriteLine("usage: NoiseCut.Experiments <restart|out-of-order|storm|scale|all> [--rounds N] [--zone z-0N --rate R] [--no-build]");
+    Console.WriteLine("usage: NoiseCut.Experiments <restart|out-of-order|storm|scale|load|all> [--rounds N] [--round-seconds S] [--zone z-0N] [--rate R] [--no-build]   (profile: NOISECUT_PROFILE=naive|robust)");
     return 2;
 }
 
@@ -27,11 +27,12 @@ foreach (var name in experiments)
         "restart" => RestartExperiment.Environment,
         "out-of-order" => OutOfOrderExperiment.Environment,
         "storm" => StormExperiment.Environment,
+        "load" => LoadExperiment.Environment,
         _ => ScaleExperiment.Environment,
     };
 
     var configuration = new JsonObject { ["profile"] = profile, ["serviceOverrides"] = ToJson(environment) };
-    var run = new ExperimentRun(name, repoRoot, configuration);
+    var run = new ExperimentRun($"{name}-{profile}", repoRoot, configuration);
     var compose = new Compose(repoRoot, environment, run.Log);
     using var client = new NoiseCutClient("http://localhost:8080", "http://localhost:9090", adminKey);
     var stack = new Stack(compose, client, run);
@@ -50,7 +51,11 @@ foreach (var name in experiments)
         {
             case "restart":
                 configuration["rounds"] = rounds;
-                await RestartExperiment.RunAsync(stack, rounds);
+                var roundSeconds = ArgInt("--round-seconds", 150);
+                double? restartRate = ArgString("--rate") is { } rr ? double.Parse(rr, System.Globalization.CultureInfo.InvariantCulture) : null;
+                configuration["roundSeconds"] = roundSeconds;
+                configuration["rate"] = restartRate;
+                await RestartExperiment.RunAsync(stack, rounds, TimeSpan.FromSeconds(roundSeconds), restartRate);
                 break;
             case "out-of-order":
                 configuration["chaosSeconds"] = 360;
@@ -60,6 +65,10 @@ foreach (var name in experiments)
             case "storm":
                 configuration["observeSeconds"] = 210;
                 await StormExperiment.RunAsync(stack, TimeSpan.FromSeconds(210));
+                break;
+            case "load":
+                configuration["levels"] = "300, 600, 1200 orders/sim-min";
+                await LoadExperiment.RunAsync(stack);
                 break;
             case "scale":
                 configuration["observeSeconds"] = 360;

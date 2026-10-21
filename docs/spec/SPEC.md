@@ -275,6 +275,7 @@ Semantics:
 
 Semantics:
 - `rate = cancelled / placed` for the zone in the current event-time hour. The baseline is the same zone and hour-of-week 7 days earlier, read from `zone_hourly_stats`. If that exact hour is missing, the lookup steps back one week at a time to the most recent hour with the same hour-of-week. *(M1: the sim clock runs 10× faster than the wall clock, so it outruns the seeded week in about 17 real hours.)* If nothing exists further back, it steps *forward* to the nearest later week. *(M2: an experiment that pinned the sim clock to earlier today fell just before the seeded week, used the 2% floor, and raised false spikes at a normal 3.5% peak rate.)*
+- *M3 change (ADR-0015):* with `"cohortBy": "orderId"` (the reference rule has it), each cancellation counts towards the hour its **order was placed** in: "of the orders placed this hour, what fraction were cancelled". The arrival-time definition above compares two populations and inflates the rate whenever demand drops; the first robust demo raised a false spike that way. Cohort hours become final 45 minutes after hour end.
 - **Guards against noise.** Do not evaluate until `placed ≥ minDenominator`, because 2 cancellations out of 3 orders means nothing. The baseline rate is floored: `effective = max(baseline, minBaselineRate)`. A zero or missing baseline therefore can't make a spike "infinite".
 - *M1 change: `minDenominator` 20 → 300.* With 200, the no-incident scenario test (`ScenarioDetectionTests`, seed 1) raised a false spike within 2 simulated hours of normal traffic. The cause is binomial noise: at n = 200 and a true rate of 3.5%, reaching 2× the baseline is only about 2 standard deviations away, and the rule re-checks every minute. A rough estimate for n = 300 puts the chance per evaluation near 0.05%. The no-incident tests (3 seeds × 2 h) now pass. The trade-off is that the rule can only fire once 300 orders have arrived in the hour, so quiet hours are never evaluated. Guards are statistics, not decoration.
 - This is a **non-monotonic** condition: the ratio can rise and then fall. It is evaluated at every pane close once the guard passes, and at most one episode exists per (zone, hour). The episode resolves when the watermark closes the hour.
@@ -324,7 +325,7 @@ Semantics:
 
 1. Poll a record → deserialize (invalid → DLQ).
 2. **Watermark update:** `wm[p] = max(wm[p], occurredAt − MaxOutOfOrderness)` (ticks included).
-3. **Lateness check:** if `occurredAt < wm[p] − AllowedLateness`, send the record to `late-events`, increment `noisecut_late_events_dropped_total`, and stop.
+3. **Lateness check:** if `occurredAt < wm[p] − AllowedLateness`, send the record to `late-events` and increment `noisecut_late_events_total{outcome="dropped"}`. Window and zone rules skip it, because their windows are closed. *M3 correction:* absence rules still apply it, since a late pickup can only disarm a timer or resolve an alert (§5.4). Dropping it entirely turned Experiment 2A's held-back pickups into false stuck-pickup alerts.
 4. Apply to every enabled rule's state for this partition (order stage) and update the zone partial counts.
 5. **Watermark-driven work:** close panes, fire absence timers, evaluate resolutions, and emit zone partials for closed panes.
 6. Produce alert candidates.
@@ -358,6 +359,10 @@ Checkpointed protocol (ADR-0005):
 - **Invariant:** *never persist an offset whose consequences (candidates) are not durable.* Replay after a crash can therefore re-emit candidates, but it never loses them. Duplicates are absorbed downstream by deterministic alert keys (ADR-0006).
 - State is serialized as versioned JSON (readable for learning). If size becomes a problem, switching to a binary format is an allowed later optimization.
 - **Known limitation (documented, not solved in v1):** a "zombie" instance that has lost its partition but has not noticed yet could overwrite a newer checkpoint. Mitigation: the revoke handler is synchronous, and each checkpoint row carries the consumer-group generation as `epoch`, and a write is rejected if it carries a lower epoch.
+- *As built (M3, ADR-0014):*
+  - The epoch is a **fencing token issued by PostgreSQL**, not the group generation. Taking a partition bumps it atomically, and every write must present it (`WHERE epoch = @mine`). A fenced instance drops the partition.
+  - The robust stages also use **static membership** (`group.instance.id`, 10 s session timeout), so a restarted engine reclaims its partitions immediately instead of after the dead member's session expires.
+  - A failed produce stops the stage, because a later checkpoint must never cover a lost candidate. The restart resumes from the last checkpoint.
 
 ### 6.4 Zone stage (cross-partition aggregation)
 
@@ -368,6 +373,11 @@ Checkpointed protocol (ADR-0005):
 - Partials carry cumulative totals rather than deltas, so **replays and duplicates are harmless**: reapplying an older or equal `seq` is a no-op.
 - The zone watermark is the min of the latest `sourceWatermark` across all 6 source partitions.
 - The zone stage is checkpointed the same way as the order stage (stage = `zone`).
+- *As built (M3):*
+  - Partials are published every time a source partition closes a pane. Each publish covers the current hour for **every** zone (zeros included, so the zone stage learns the source's watermark), plus any older hour whose counts changed.
+  - Partials for an hour that is already final are ignored.
+  - Hours become final at hour end + allowed lateness, plus 45 min for cohort rules (ADR-0015).
+  - The zone stage writes final totals to `zone_hourly_stats` with `source = 'live'` (idempotent upsert).
 
 ### 6.5 Emit modes (`Engine:EmitMode`)
 
@@ -431,6 +441,12 @@ Commit the Kafka offset **after** the DB commit (at-least-once intake + idempote
 
 Alert state machine: `firing → acknowledged → resolved`, or `firing → resolved`. Acknowledging
 (admin) stops further escalation. Resolution sends a "resolved" notification to the original channels.
+
+*M3 policy details:*
+- **Resolved only if notified.** With cooldown or grouping on, a "resolved" goes out only if that episode's "firing" did. Nobody needs to hear that something they were never told about is over.
+- **Grouping applies to both kinds.** Firing and resolved notifications are grouped separately per (rule, groupKey, kind). A group notification lists its members; the first member opens the group, and later ones are counted as `suppressed{reason="grouped"}`.
+- **Escalation** is driven by `alerts.first_detected_at` (wall clock), for alerts that are still firing, were notified and not acknowledged. Email goes through Mailpit locally.
+- **Ack:** `POST /api/alerts/{key}/ack` (admin) sets `acknowledged`, which stops escalation. Resolution still notifies.
 
 **Reported numbers** (§9) come straight from these stages: candidates in, deduped, cooldown-suppressed,
 alerts merged by grouping, and notifications out.
@@ -614,6 +630,7 @@ All settings are standard .NET configuration (appsettings → env vars `NoiseCut
 | `Engine:StateMode` | `InMemory` | `Checkpointed` |
 | `Engine:TimeMode` | `ProcessingTime` | `EventTime` |
 | `Engine:EmitMode` | `EveryMatch` | `OnTransition` |
+| `Engine:ZoneStage` (M3) | `false` (one engine state per process) | `true` (per-partition order stage + zone stage) |
 | `Notifier:Dedup` / `Cooldown` / `Grouping` / `Escalation` | `false` | `true` |
 
 `NoiseCut:Profile=naive|robust` applies the preset. Individual keys override it, so one fix can be

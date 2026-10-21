@@ -74,7 +74,11 @@ Also added in M2: Prometheus + Grafana in Compose, the metrics from SPEC §10, a
 
 ---
 
-## M3 — Prove (fix, re-measure, scale)
+## M3 — Prove (fix, re-measure, scale) ✅
+
+> Done 2026-10-21. Every experiment page has an After section, and acceptance criterion 3 is met (20 kills under 2× load, 0 duplicates).
+> Deviations: fencing uses a PostgreSQL epoch, plus Kafka static membership (ADR-0014); rule B gained cohort attribution (ADR-0015);
+> and too-late events still reach absence rules (SPEC §6.1). See the [journal](../JOURNAL.md).
 
 Each fix lands with its own commits and tests. Then the matching experiment is re-run in robust mode and its page gets an "After" section.
 

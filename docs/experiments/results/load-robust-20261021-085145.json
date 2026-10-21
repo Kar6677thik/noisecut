@@ -1,0 +1,136 @@
+{
+  "experiment": "load-robust",
+  "startedAt": "2026-10-21T08:51:45.4941649+00:00",
+  "durationSeconds": 631,
+  "commit": "6341aa6\u002Bdirty",
+  "machine": {
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "logicalCpus": 14,
+    "docker": "14 CPUs, 7751794688 bytes, server 28.4.0"
+  },
+  "configuration": {
+    "profile": "robust",
+    "serviceOverrides": {
+      "simulator": {
+        "Simulator__StartAtLocalHour": "12"
+      }
+    },
+    "levels": "300, 600, 1200 orders/sim-min"
+  },
+  "results": {
+    "levels": [
+      {
+        "level": "1x",
+        "ordersPerSimMinute": 300,
+        "eventsPerSecond": 172,
+        "candidates": 41,
+        "detectionP50Seconds": 0.008,
+        "detectionP95Seconds": 0.01,
+        "detectionP99Seconds": 0.041,
+        "maxConsumerLagRecords": 36,
+        "maxRecordAgeSeconds": 0.33,
+        "checkpointP95Seconds": 0.0468
+      },
+      {
+        "level": "2x",
+        "ordersPerSimMinute": 600,
+        "eventsPerSecond": 389,
+        "candidates": 1200,
+        "detectionP50Seconds": 0.008,
+        "detectionP95Seconds": 0.01,
+        "detectionP99Seconds": 0.027,
+        "maxConsumerLagRecords": 52,
+        "maxRecordAgeSeconds": 0.16,
+        "checkpointP95Seconds": 0.095
+      },
+      {
+        "level": "4x",
+        "ordersPerSimMinute": 1200,
+        "eventsPerSecond": 782,
+        "candidates": 2419,
+        "detectionP50Seconds": 0.008,
+        "detectionP95Seconds": 0.01,
+        "detectionP99Seconds": 0.166,
+        "maxConsumerLagRecords": 98,
+        "maxRecordAgeSeconds": 0.2,
+        "checkpointP95Seconds": 0.2667
+      }
+    ],
+    "truth": [
+      {
+        "ruleId": "restaurant-delay-burst",
+        "alerts": 6,
+        "truePositives": 6,
+        "falsePositives": 0
+      },
+      {
+        "ruleId": "stuck-pickup",
+        "alerts": 2473,
+        "truePositives": 2473,
+        "falsePositives": 0
+      }
+    ]
+  },
+  "steps": [
+    {
+      "t": 0,
+      "step": "=== load (profile robust) ==="
+    },
+    {
+      "t": 0,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 0,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 6.4,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 15.4,
+      "step": "stack ready; sim time 2026-10-21T06:30:17\u002B00:00, demand factor 1"
+    },
+    {
+      "t": 15.4,
+      "step": "waiting 30s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 45.5,
+      "step": "waiting 45s: 1x: settle at 300 orders/sim-min"
+    },
+    {
+      "t": 90.6,
+      "step": "waiting 150s: 1x: observe"
+    },
+    {
+      "t": 240.6,
+      "step": "1x: {\u0022level\u0022:\u00221x\u0022,\u0022ordersPerSimMinute\u0022:300,\u0022eventsPerSecond\u0022:172,\u0022candidates\u0022:41,\u0022detectionP50Seconds\u0022:0.008,\u0022detectionP95Seconds\u0022:0.01,\u0022detectionP99Seconds\u0022:0.041,\u0022maxConsumerLagRecords\u0022:36,\u0022maxRecordAgeSeconds\u0022:0.33,\u0022checkpointP95Seconds\u0022:0.0468}"
+    },
+    {
+      "t": 240.7,
+      "step": "waiting 45s: 2x: settle at 600 orders/sim-min"
+    },
+    {
+      "t": 285.7,
+      "step": "waiting 150s: 2x: observe"
+    },
+    {
+      "t": 435.7,
+      "step": "2x: {\u0022level\u0022:\u00222x\u0022,\u0022ordersPerSimMinute\u0022:600,\u0022eventsPerSecond\u0022:389,\u0022candidates\u0022:1200,\u0022detectionP50Seconds\u0022:0.008,\u0022detectionP95Seconds\u0022:0.01,\u0022detectionP99Seconds\u0022:0.027,\u0022maxConsumerLagRecords\u0022:52,\u0022maxRecordAgeSeconds\u0022:0.16,\u0022checkpointP95Seconds\u0022:0.095}"
+    },
+    {
+      "t": 435.7,
+      "step": "waiting 45s: 4x: settle at 1200 orders/sim-min"
+    },
+    {
+      "t": 480.7,
+      "step": "waiting 150s: 4x: observe"
+    },
+    {
+      "t": 630.7,
+      "step": "4x: {\u0022level\u0022:\u00224x\u0022,\u0022ordersPerSimMinute\u0022:1200,\u0022eventsPerSecond\u0022:782,\u0022candidates\u0022:2419,\u0022detectionP50Seconds\u0022:0.008,\u0022detectionP95Seconds\u0022:0.01,\u0022detectionP99Seconds\u0022:0.166,\u0022maxConsumerLagRecords\u0022:98,\u0022maxRecordAgeSeconds\u0022:0.2,\u0022checkpointP95Seconds\u0022:0.2667}"
+    }
+  ]
+}

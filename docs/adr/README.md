@@ -22,3 +22,5 @@ Each one is short: the context, the decision, the alternatives we rejected, and 
 | [0011](0011-dapper-and-sql-migrations.md) | Dapper + plain SQL migrations instead of EF Core | Accepted |
 | [0012](0012-event-time-with-ticks.md) | Event-time processing with source ticks for watermarks | Accepted |
 | [0013](0013-experiments-as-a-dotnet-harness.md) | Experiments run from a .NET harness, not shell scripts | Accepted |
+| [0014](0014-fencing-tokens-and-static-membership.md) | Checkpoint fencing with a PostgreSQL epoch, plus Kafka static membership | Accepted |
+| [0015](0015-cohort-attribution-for-ratio-rules.md) | Ratio rules count cancellations against the hour the order was placed | Accepted |

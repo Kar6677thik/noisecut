@@ -1,0 +1,264 @@
+{
+  "experiment": "restart-robust",
+  "startedAt": "2026-10-21T07:32:53.9347954+00:00",
+  "durationSeconds": 975,
+  "commit": "6341aa6\u002Bdirty",
+  "machine": {
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "logicalCpus": 14,
+    "docker": "14 CPUs, 7751794688 bytes, server 28.4.0"
+  },
+  "configuration": {
+    "profile": "robust",
+    "serviceOverrides": {
+      "engine": {
+        "Engine__EmitMode": "OnTransition"
+      },
+      "simulator": {
+        "Simulator__StartAtLocalHour": "12"
+      }
+    },
+    "rounds": 5,
+    "roundSeconds": 150,
+    "rate": null
+  },
+  "results": {
+    "rounds": [
+      {
+        "round": 0,
+        "restaurant": "r-001",
+        "killAfterSeconds": null,
+        "detected": true,
+        "secondsToDetect": 29,
+        "alertsForIncident": 1,
+        "candidates": 2
+      },
+      {
+        "round": 1,
+        "restaurant": "r-011",
+        "killAfterSeconds": 15,
+        "detected": true,
+        "secondsToDetect": 23.3,
+        "alertsForIncident": 1,
+        "candidates": 2
+      },
+      {
+        "round": 2,
+        "restaurant": "r-021",
+        "killAfterSeconds": 30,
+        "detected": true,
+        "secondsToDetect": 27.7,
+        "alertsForIncident": 1,
+        "candidates": 3
+      },
+      {
+        "round": 3,
+        "restaurant": "r-031",
+        "killAfterSeconds": 45,
+        "detected": true,
+        "secondsToDetect": 26.7,
+        "alertsForIncident": 1,
+        "candidates": 2
+      },
+      {
+        "round": 4,
+        "restaurant": "r-041",
+        "killAfterSeconds": 60,
+        "detected": true,
+        "secondsToDetect": 28.8,
+        "alertsForIncident": 1,
+        "candidates": 2
+      },
+      {
+        "round": 5,
+        "restaurant": "r-051",
+        "killAfterSeconds": 90,
+        "detected": true,
+        "secondsToDetect": 22.3,
+        "alertsForIncident": 1,
+        "candidates": 2
+      }
+    ],
+    "kills": 5,
+    "fencedCheckpoints": 0,
+    "lateEventsDropped": 0,
+    "missedIncidents": 0,
+    "extraAlertsForSameIncident": 0,
+    "sinkReceipts": 11,
+    "duplicateWebhooks": 0,
+    "falseAlertsByRule": [
+      {
+        "ruleId": "restaurant-delay-burst",
+        "alerts": 6,
+        "truePositives": 6,
+        "falsePositives": 0
+      }
+    ]
+  },
+  "steps": [
+    {
+      "t": 0,
+      "step": "building images"
+    },
+    {
+      "t": 0,
+      "step": "$ docker compose build"
+    },
+    {
+      "t": 2.5,
+      "step": "=== restart (profile robust) ==="
+    },
+    {
+      "t": 2.5,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 2.5,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 4.9,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 14.4,
+      "step": "stack ready; sim time 2026-10-21T06:30:17\u002B00:00, demand factor 1"
+    },
+    {
+      "t": 14.4,
+      "step": "waiting 30s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 44.6,
+      "step": "round 0: kitchen-meltdown at r-001 (control, no kill)"
+    },
+    {
+      "t": 44.6,
+      "step": "waiting 150s: let the meltdown play out"
+    },
+    {
+      "t": 194.4,
+      "step": "round 1: kitchen-meltdown at r-011, kill after 15s"
+    },
+    {
+      "t": 209.5,
+      "step": "$ docker compose kill engine"
+    },
+    {
+      "t": 209.8,
+      "step": "waiting 5s: engine is down"
+    },
+    {
+      "t": 214.8,
+      "step": "$ docker compose start engine"
+    },
+    {
+      "t": 216.9,
+      "step": "engine started again"
+    },
+    {
+      "t": 216.9,
+      "step": "waiting 128s: let the meltdown play out"
+    },
+    {
+      "t": 344.5,
+      "step": "round 2: kitchen-meltdown at r-021, kill after 30s"
+    },
+    {
+      "t": 374.5,
+      "step": "$ docker compose kill engine"
+    },
+    {
+      "t": 374.8,
+      "step": "waiting 5s: engine is down"
+    },
+    {
+      "t": 379.8,
+      "step": "$ docker compose start engine"
+    },
+    {
+      "t": 381.5,
+      "step": "engine started again"
+    },
+    {
+      "t": 381.5,
+      "step": "waiting 113s: let the meltdown play out"
+    },
+    {
+      "t": 494.5,
+      "step": "round 3: kitchen-meltdown at r-031, kill after 45s"
+    },
+    {
+      "t": 539.5,
+      "step": "$ docker compose kill engine"
+    },
+    {
+      "t": 540,
+      "step": "waiting 5s: engine is down"
+    },
+    {
+      "t": 545,
+      "step": "$ docker compose start engine"
+    },
+    {
+      "t": 547.1,
+      "step": "engine started again"
+    },
+    {
+      "t": 547.1,
+      "step": "waiting 97s: let the meltdown play out"
+    },
+    {
+      "t": 644.5,
+      "step": "round 4: kitchen-meltdown at r-041, kill after 60s"
+    },
+    {
+      "t": 704.5,
+      "step": "$ docker compose kill engine"
+    },
+    {
+      "t": 704.9,
+      "step": "waiting 5s: engine is down"
+    },
+    {
+      "t": 709.9,
+      "step": "$ docker compose start engine"
+    },
+    {
+      "t": 711.6,
+      "step": "engine started again"
+    },
+    {
+      "t": 711.6,
+      "step": "waiting 83s: let the meltdown play out"
+    },
+    {
+      "t": 794.5,
+      "step": "round 5: kitchen-meltdown at r-051, kill after 90s"
+    },
+    {
+      "t": 884.5,
+      "step": "$ docker compose kill engine"
+    },
+    {
+      "t": 884.8,
+      "step": "waiting 5s: engine is down"
+    },
+    {
+      "t": 889.8,
+      "step": "$ docker compose start engine"
+    },
+    {
+      "t": 891.5,
+      "step": "engine started again"
+    },
+    {
+      "t": 891.5,
+      "step": "waiting 53s: let the meltdown play out"
+    },
+    {
+      "t": 944.5,
+      "step": "waiting 30s: let the notifier drain its outbox"
+    }
+  ]
+}

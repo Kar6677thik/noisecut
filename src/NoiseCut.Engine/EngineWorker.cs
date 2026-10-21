@@ -38,7 +38,7 @@ public sealed class EngineWorker(
     private async Task RunAsync(CancellationToken ct)
     {
         var options = engineOptions.Value;
-        options.EnsureSupported();
+        options.EnsureSupportedBySingleWorker();
 
         // Start only once rules are known; otherwise the first records would be evaluated against nothing.
         await rules.Ready.Task.WaitAsync(ct);
@@ -72,13 +72,14 @@ public sealed class EngineWorker(
 
         var stats = new Stats();
         var statsTimer = Stopwatch.StartNew();
+        var appliedRules = 0;
         var gaugeTimer = Stopwatch.StartNew();
 
         try
         {
             while (!ct.IsCancellationRequested)
             {
-                if (rules.TakePending() is { } newRules && engine.SetRules(newRules))
+                if (rules.Current is { } snapshot && snapshot.Version != appliedRules && (appliedRules = snapshot.Version) > 0 && engine.SetRules(snapshot.Rules))
                 {
                     logger.LogInformation("Rule set applied: {Rules}", string.Join(", ", engine.ActiveRules.Select(r => $"{r.Id} v{r.Version}")));
                 }

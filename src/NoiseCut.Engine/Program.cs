@@ -17,7 +17,18 @@ builder.Services.AddSingleton<RuleStore>();
 builder.Services.AddSingleton<BaselineCache>();
 builder.Services.AddSingleton<RuleFeed>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RuleFeed>());
-builder.Services.AddHostedService<EngineWorker>();
+builder.Services.AddSingleton<CheckpointStore>();
+
+// Naive (M1): one in-memory engine per process. Robust (M3): per-partition, checkpointed order stage + zone stage.
+if (builder.Configuration.GetValue<bool>("Engine:ZoneStage"))
+{
+    builder.Services.AddHostedService<NoiseCut.Engine.Robust.OrderStage>();
+    builder.Services.AddHostedService<NoiseCut.Engine.Robust.ZoneStage>();
+}
+else
+{
+    builder.Services.AddHostedService<EngineWorker>();
+}
 
 var host = builder.Build();
 host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("NoiseCut").LogInformation("Profile: {Profile}", profile);

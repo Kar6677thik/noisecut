@@ -19,7 +19,9 @@ public sealed record AlertRow(
     int CandidateCount,
     DateTimeOffset FirstDetectedAt,
     DateTimeOffset LastCandidateAt,
-    DateTimeOffset? ResolvedAt);
+    DateTimeOffset? ResolvedAt,
+    int SuppressedCount,
+    DateTimeOffset? AckedAt);
 
 public sealed record CandidateRow(string Status, Guid CandidateId, DateTimeOffset ReceivedAt, int RepeatCount, DateTimeOffset? LastRepeatAt);
 
@@ -87,7 +89,7 @@ public sealed class DashboardQueries(NpgsqlDataSource db)
         alert_key AS AlertKey, rule_id AS RuleId, rule_version AS RuleVersion, severity AS Severity, entity_type AS EntityType,
         entity_key AS EntityKey, group_key AS GroupKey, status AS Status, episode_start AS EpisodeStart, title AS Title,
         detail AS Detail, observed::text AS Observed, candidate_count AS CandidateCount, first_detected_at AS FirstDetectedAt,
-        last_candidate_at AS LastCandidateAt, resolved_at AS ResolvedAt
+        last_candidate_at AS LastCandidateAt, resolved_at AS ResolvedAt, suppressed_count AS SuppressedCount, acked_at AS AckedAt
         """;
 
     public async Task<IReadOnlyList<AlertRow>> RecentAlertsAsync(int limit, string? status = null, string? ruleId = null)
@@ -231,6 +233,15 @@ public sealed class DashboardQueries(NpgsqlDataSource db)
             LIMIT 100
             """);
         return new TruthReport(scenarios.AsList(), rules.AsList(), falseAlerts.AsList(), falseGroups.AsList(), await StatsAsync());
+    }
+
+    /// <summary>Acknowledge a firing alert: a human is on it, so escalation stops (SPEC §7.2).</summary>
+    public async Task<bool> AckAsync(string alertKey)
+    {
+        await using var conn = await db.OpenConnectionAsync();
+        return await conn.ExecuteAsync(
+            "UPDATE alerts SET status = 'acknowledged', acked_at = now() WHERE alert_key = @alertKey AND status = 'firing'",
+            new { alertKey }) == 1;
     }
 
     public async Task<bool> PingAsync(CancellationToken ct)

@@ -1,0 +1,238 @@
+{
+  "experiment": "out-of-order-robust",
+  "startedAt": "2026-10-21T09:13:21.4734614+00:00",
+  "durationSeconds": 1011,
+  "commit": "6341aa6\u002Bdirty",
+  "machine": {
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "logicalCpus": 14,
+    "docker": "14 CPUs, 7751794688 bytes, server 28.4.0"
+  },
+  "configuration": {
+    "profile": "robust",
+    "serviceOverrides": {
+      "engine": {
+        "Engine__EmitMode": "OnTransition"
+      },
+      "simulator": {
+        "Simulator__StartAtLocalHour": "12"
+      }
+    },
+    "chaosSeconds": 360,
+    "pauseSeconds": 120
+  },
+  "results": {
+    "partA": {
+      "simHours": 1.42,
+      "falseAlertsByRule": {},
+      "falseAlertsPerSimHour": {},
+      "ordersCreated": 26880,
+      "eventsHeldBack": 652,
+      "falseAlertsWhere": []
+    },
+    "partB": {
+      "falseAlertsDuringControl": {},
+      "falseAlertsAfterPauseTotal": {},
+      "pauseSeconds": 120,
+      "lagRecordsBeforeResume": 27343,
+      "scenarios": [
+        {
+          "id": "01a15dc6-0699-79f8-b785-76fa8f717ad7",
+          "name": "slow-kitchen",
+          "target": "r-005",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:16\u002B00:00",
+          "endsAt": "2026-10-21T08:35:16\u002B00:00",
+          "injectedAt": "2026-10-21T09:23:41.464454\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15dc6-0725-7b71-8230-115131ef7733",
+          "name": "slow-kitchen",
+          "target": "r-015",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:17\u002B00:00",
+          "endsAt": "2026-10-21T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-21T09:23:41.478542\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15dc6-072c-7ada-ae05-5c7740bdfda1",
+          "name": "slow-kitchen",
+          "target": "r-025",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:17\u002B00:00",
+          "endsAt": "2026-10-21T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-21T09:23:41.485012\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15dc6-0731-770e-8877-1dd7df4a0a37",
+          "name": "slow-kitchen",
+          "target": "r-035",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:17\u002B00:00",
+          "endsAt": "2026-10-21T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-21T09:23:41.489342\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15dc6-0735-7a87-aa9b-431f952f6b06",
+          "name": "slow-kitchen",
+          "target": "r-045",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:17\u002B00:00",
+          "endsAt": "2026-10-21T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-21T09:23:41.494016\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15dc6-073a-7117-b466-0cf296c58916",
+          "name": "slow-kitchen",
+          "target": "r-055",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:17\u002B00:00",
+          "endsAt": "2026-10-21T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-21T09:23:41.498667\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        }
+      ],
+      "rules": [],
+      "falseAlertsWhere": []
+    }
+  },
+  "steps": [
+    {
+      "t": 0,
+      "step": "building images"
+    },
+    {
+      "t": 0,
+      "step": "$ docker compose build"
+    },
+    {
+      "t": 21.6,
+      "step": "=== out-of-order (profile robust) ==="
+    },
+    {
+      "t": 21.6,
+      "step": "PART A: out-of-order delivery, no incidents"
+    },
+    {
+      "t": 21.6,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 21.6,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 28.1,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 38.4,
+      "step": "stack ready; sim time 2026-10-21T06:30:17\u002B00:00, demand factor 1"
+    },
+    {
+      "t": 38.4,
+      "step": "waiting 30s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 68.4,
+      "step": "chaos on: 1% of events held back up to 60 s"
+    },
+    {
+      "t": 68.4,
+      "step": "waiting 360s: out-of-order traffic"
+    },
+    {
+      "t": 428.4,
+      "step": "chaos off"
+    },
+    {
+      "t": 428.4,
+      "step": "waiting 150s: timers armed during chaos (20 sim min = 2 wall min) come due"
+    },
+    {
+      "t": 578.5,
+      "step": "PART B: consumer lag with near-miss restaurants, no incidents"
+    },
+    {
+      "t": 578.5,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 578.5,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 580.7,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 589.8,
+      "step": "stack ready; sim time 2026-10-21T06:30:15\u002B00:00, demand factor 1"
+    },
+    {
+      "t": 589.8,
+      "step": "waiting 30s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 620,
+      "step": "slow-kitchen at 6 restaurants (bad delays, never 5 within 10 min)"
+    },
+    {
+      "t": 620,
+      "step": "waiting 180s: control period: engine keeps up"
+    },
+    {
+      "t": 800.1,
+      "step": "$ docker compose pause engine"
+    },
+    {
+      "t": 800.3,
+      "step": "waiting 120s: engine paused: the backlog builds up"
+    },
+    {
+      "t": 920.3,
+      "step": "$ docker compose exec -T redpanda rpk group describe noisecut-engine"
+    },
+    {
+      "t": 920.5,
+      "step": "$ docker compose unpause engine"
+    },
+    {
+      "t": 920.6,
+      "step": "engine resumed"
+    },
+    {
+      "t": 920.6,
+      "step": "waiting 90s: engine catches up"
+    }
+  ]
+}

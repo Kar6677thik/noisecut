@@ -27,6 +27,7 @@ public static class NoiseCutTelemetry
                 .AddRuntimeInstrumentation()
                 .AddView("noisecut_detection_latency", new ExplicitBucketHistogramConfiguration { Boundaries = LatencyBuckets })
                 .AddView("noisecut_delivery_latency", new ExplicitBucketHistogramConfiguration { Boundaries = LatencyBuckets })
+                .AddView("noisecut_checkpoint_duration", new ExplicitBucketHistogramConfiguration { Boundaries = [0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5] })
                 .AddPrometheusHttpListener(o =>
                 {
                     o.Port = port;

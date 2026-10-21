@@ -33,6 +33,21 @@ public static class NoiseCutMetrics
     public static readonly Gauge<long> EngineZoneHourOrders =
         Meter.CreateGauge<long>("noisecut_engine_zone_hour_orders", description: "Rule B counts this engine instance holds for the current hour, by zone and kind.");
 
+    public static readonly Counter<long> LateEvents =
+        Meter.CreateCounter<long>("noisecut_late_events", description: "Events behind the watermark: outcome=applied (within allowed lateness) or dropped (sent to late-events).");
+
+    public static readonly Gauge<double> Watermark =
+        Meter.CreateGauge<double>("noisecut_watermark", "s", "Event-time watermark as Unix seconds, per stage and partition.");
+
+    public static readonly Histogram<double> CheckpointDuration =
+        Meter.CreateHistogram<double>("noisecut_checkpoint_duration", "s", "Producer flush + checkpoint write, per stage.");
+
+    public static readonly Counter<long> CheckpointsFenced =
+        Meter.CreateCounter<long>("noisecut_checkpoints_fenced", description: "Checkpoint writes rejected because another instance owns the partition now.");
+
+    public static readonly Counter<long> CheckpointsSkipped =
+        Meter.CreateCounter<long>("noisecut_checkpoints_skipped", description: "Checkpoints skipped because produced records were not yet acknowledged.");
+
     public static readonly Counter<long> DeadLettered =
         Meter.CreateCounter<long>("noisecut_dead_lettered", description: "Records sent to order-events-dlq.");
 

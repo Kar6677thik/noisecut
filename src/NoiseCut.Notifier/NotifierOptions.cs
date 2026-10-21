@@ -21,18 +21,7 @@ public sealed class NotifierOptions
 
     public DispatcherOptions Dispatcher { get; set; } = new();
 
-    /// <summary>Cooldown, grouping and escalation are M3 work. Refuse to start rather than silently ignore them.</summary>
-    public void EnsureSupported()
-    {
-        var unsupported = new[] { (Cooldown, "Cooldown"), (Grouping, "Grouping"), (Escalation, "Escalation") }
-            .Where(f => f.Item1)
-            .Select(f => f.Item2)
-            .ToList();
-        if (unsupported.Count > 0)
-        {
-            throw new NotSupportedException($"Notifier:{string.Join("/", unsupported)} not implemented yet (milestone M3). Set them to false.");
-        }
-    }
+    public EmailOptions Email { get; set; } = new();
 }
 
 public sealed class WebhookOptions
@@ -47,6 +36,24 @@ public sealed class WebhookOptions
     public string Format { get; set; } = "generic";
 
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(5);
+}
+
+public sealed class EmailOptions
+{
+    /// <summary>Default: Mailpit in the local stack. Its web inbox is never exposed publicly (SPEC §7.4).</summary>
+    public string SmtpHost { get; set; } = "localhost";
+
+    public int SmtpPort { get; set; } = 1025;
+
+    public bool UseTls { get; set; }
+
+    public string? Username { get; set; }
+
+    public string? Password { get; set; }
+
+    public string From { get; set; } = "noisecut@noisecut.local";
+
+    public string To { get; set; } = "oncall@noisecut.local";
 }
 
 public sealed class DispatcherOptions
