@@ -1,7 +1,8 @@
 # Experiments
 
-Each experiment is a reproducible run with recorded numbers. M2 records the **Break** ("before") runs; M3 adds an
-**After** section to each page with the fixes switched on.
+Each experiment is a reproducible run with recorded numbers. M2 recorded the **Break** ("before") runs, and M3 added an
+**After** section to each page with the fixes switched on (`NOISECUT_PROFILE=robust`). Result files are named `<experiment>-<profile>-<timestamp>.json`;
+the M2 files predate the profile suffix.
 
 | # | Page | Question |
 |---|------|----------|
@@ -9,7 +10,7 @@ Each experiment is a reproducible run with recorded numbers. M2 records the **Br
 | 2 | [02-out-of-order.md](02-out-of-order.md) | What do out-of-order delivery and consumer lag do to processing-time rules? |
 | 3 | [03-storm.md](03-storm.md) | How many notifications does one big incident produce with no noise controls? |
 | 4 | [04-scale.md](04-scale.md) | Does a zone rule still work when 3 engines each see part of the zone? |
-| 5 | (M3) | Detection latency under load |
+| 5 | [05-load.md](05-load.md) | Detection latency at 1×, 2× and 4× load |
 
 ## How to run
 

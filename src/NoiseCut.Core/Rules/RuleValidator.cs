@@ -138,6 +138,11 @@ public static partial class RuleValidator
             errors.Add("condition: ratio_vs_baseline needs op gte_multiple with a positive value");
         }
 
+        if (rule.CohortBy is not null && rule.CohortBy != "orderId")
+        {
+            errors.Add("cohortBy: only orderId is supported");
+        }
+
         if (rule.Guards is { } g && (g.MinDenominator < 1 || g.MinBaselineRate < 0 || g.MinBaselineRate >= 1))
         {
             errors.Add("guards: minDenominator ≥ 1 and 0 ≤ minBaselineRate < 1");

@@ -3,13 +3,15 @@
 **A real-time business alerting engine that catches real incidents early without drowning people in noise.**
 A learning-scale rebuild of the problem behind Swiggy's Klaxon platform.
 
-> **Status:** M2 done. The naive system is instrumented and each failure is measured ([experiments](docs/experiments/README.md)). Next: M3 (fix and prove).
+> **Status:** M3 done. The robust profile fixes every measured failure: 0 duplicate notifications across 20 forced crashes, and one storm → 4 notifications instead of 1,164 ([experiments](docs/experiments/README.md)). Next: M4 (deploy).
 > See the [milestones](docs/plan/MILESTONES.md).
 
 ```
-Simulator ──▶ Redpanda ──▶ Engine ──▶ alert-candidates ──▶ Notifier ──▶ dashboard (SSE) · webhook
- (orders)    (order-events)  (windows,                      (intake log,
-                              rules)                         outbox)
+Simulator ──▶ Redpanda ──▶ Engine ×N ─────────────▶ alert-candidates ──▶ Notifier ──▶ dashboard · webhook · email
+ (orders)    order-events   order stage (per partition,     (dedup, cooldown,
+                            checkpointed, event time)        grouping, escalation,
+                              │ zone-partials ▲                outbox)
+                              └──▶ zone stage ┘
 ```
 
 Rules it detects (from JSON definitions in PostgreSQL):

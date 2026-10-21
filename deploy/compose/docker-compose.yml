@@ -11,7 +11,7 @@ x-service: &service
     dockerfile: Dockerfile
   restart: unless-stopped
   environment: &service-env
-    NoiseCut__Profile: ${NOISECUT_PROFILE:-naive}
+    NoiseCut__Profile: ${NOISECUT_PROFILE:-robust}     # "naive" reproduces the M2 failures
     Kafka__BootstrapServers: redpanda:9092
     ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=noisecut;Username=noisecut;Password=${NOISECUT_PG_PASSWORD:-noisecut};GSS Encryption Mode=Disable
     Logging__Console__FormatterName: simple
@@ -121,7 +121,7 @@ services:
       - prometheus
 
   mailpit:
-    image: axllent/mailpit:latest  # fake SMTP server + inbox UI; the email channel arrives in M3
+    image: axllent/mailpit:latest  # fake SMTP server + inbox UI (escalation emails land here)
     ports:
       - "8025:8025"
 
@@ -178,6 +178,8 @@ services:
       <<: *service-env
       Notifier__Webhook__Url: http://api:8080/sinks/webhook
       Notifier__Webhook__Secret: ${NOISECUT_WEBHOOK_SECRET:-local-dev-webhook-secret}
+      Notifier__Email__SmtpHost: mailpit
+      Notifier__Email__SmtpPort: "1025"
     depends_on:
       topics-init:
         condition: service_completed_successfully

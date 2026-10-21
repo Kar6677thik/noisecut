@@ -70,4 +70,44 @@ The general lesson: in processing time, a pause in *processing* looks like a pau
 a deploy, a rebalance, a slow database) turns into fake incidents.
 
 ## After (M3)
-*To be recorded.*
+
+Profile `robust`:
+- event time, with a per-partition watermark 30 s behind the newest event;
+- ticks;
+- 2 minutes of allowed lateness;
+- an order-insensitive absence rule.
+
+Same settings and machine.
+
+| | Before (naive) | First robust run (bug) | **After (robust)** |
+|---|---:|---:|---:|
+| **A**: false stuck-pickups (1.42 sim h, 1% of events held ≤ 60 s) | 61 | 86 | **0** |
+| **B**: false alerts in the control period | 0 | 0 | **0** |
+| **B**: false delay bursts after the 120 s pause | 6 | 0 | **0** |
+| **B**: false stuck-pickups after the pause | 1,428 | 0 | **0** |
+| **B**: backlog when the engine resumed | 27,207 records | 27,334 | 27,343 |
+
+Runs: `results/out-of-order-robust-20261021-082221.json` (bug) and `results/out-of-order-robust-20261021-091321.json` (after the fix).
+
+### What fixed Part B
+In event time a stall changes nothing about *what time it is*. When the engine woke up with 27,000 records waiting, its watermarks were
+exactly where they had stopped. Replaying the backlog advanced them in event-time order: every pickup was read before the tick that
+would have moved the watermark past its deadline, and the near-miss kitchens' delays landed in their real minutes, 4 or more apart. Same
+backlog, same speed of reading, no false alerts. The stall now only *delays* alerts. It no longer invents them.
+
+### The bug the first robust run exposed (Part A got worse: 86)
+The chaos holds events back by up to 60 wall seconds (10 sim minutes), far more than the 2-minute allowed lateness. The first robust
+order stage dropped *too-late* events before any rule saw them. A held-back `picked_up` was therefore never applied, its timer stayed armed,
+and a false stuck-pickup followed: worse than naive, which at least applied late events.
+
+Allowed lateness exists to bound **window** state: a window that has closed can't take new counts. An absence rule uses a late event only
+to *disarm* a timer or *resolve* an alert, which is always safe. SPEC §5.4 already said so ("a picked_up after the timer fired, including
+a late one, emits resolved"), and the code didn't match. The fix: too-late events still go to `late-events` and skip window and zone rules,
+but absence rules apply them (`RuleEngine.ProcessTooLate`, unit test
+`A_pickup_too_late_for_windows_still_disarms_or_resolves_the_stuck_pickup_timer`). Part A: 86 → 0.
+
+The order-insensitive state (a pickup that arrives *before* its `food_ready` is remembered) removes the naive failure itself, which
+was the 61 false alerts.
+
+The Experiment 1, 3, 4 and 5 "after" runs used images built before this fix. Those runs had no too-late events (0 dropped), so the fix
+could not change them.

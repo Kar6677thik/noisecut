@@ -51,6 +51,7 @@ public static class ReferenceRules
         Baseline = new BaselineSpec { Offset = TimeSpan.FromDays(7) },
         Condition = new ConditionSpec { Op = ConditionOp.GteMultiple, Value = 2.0 },
         Guards = new GuardsSpec { MinDenominator = 300, MinBaselineRate = 0.02 },
+        CohortBy = "orderId",
         Notify = new NotifySpec
         {
             Channels = ["dashboard", "webhook"],

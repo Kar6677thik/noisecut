@@ -75,14 +75,62 @@ public class RatioVsBaselineTests
     }
 
     [Fact]
-    public void One_episode_per_zone_hour_resolved_when_the_hour_closes()
+    public void One_episode_per_zone_hour_resolved_when_the_cohort_is_final()
     {
         var engine = Engine(baselines: new FixedBaseline(0.03), rules: RuleB);
 
-        var output = engine.FeedAll([.. Ordered(Traffic(placed: 400, cancelled: 40)), Tick(At(59)), Tick(At(61))]);
+        // Cohort hours stay open 45 minutes past hour end, for late cancellations of orders placed in that hour.
+        var output = engine.FeedAll([.. Ordered(Traffic(placed: 400, cancelled: 40)), Tick(At(61)), Tick(At(104)), Tick(At(106))]);
 
         Assert.Equal([CandidateStatus.Firing, CandidateStatus.Resolved], output.Select(c => c.Status));
         Assert.Single(output.Select(c => c.AlertKey).Distinct());
+    }
+
+    [Fact]
+    public void A_cancellation_counts_towards_the_hour_its_order_was_placed_in()
+    {
+        var engine = Engine(baselines: new FixedBaseline(0.03), rules: RuleB);
+
+        // 400 orders placed in the 12:00 hour; 40 of them cancelled at 13:05–13:20, i.e. in the *next* hour.
+        var placed = Enumerable.Range(0, 400).Select(i => Order(EventTypes.Placed, $"o-{i}", At(i * 0.14), zone: "z-02"));
+        var cancelled = Enumerable.Range(0, 40).Select(i => Order(EventTypes.Cancelled, $"o-{i}", At(65 + (i * 0.4)), zone: "z-02"));
+        var output = engine.FeedAll([.. placed, .. cancelled, Tick(At(70))]);
+
+        var firing = Assert.Single(output);
+        Assert.Equal(At(0), firing.EpisodeStart); // the 12:00 cohort, not the 13:00 hour the cancellations arrived in
+        Assert.True(firing.Observed["rate"] >= 0.06); // fires as soon as the cohort's rate reaches 2 × 3%
+    }
+
+    [Fact]
+    public void A_drop_in_demand_does_not_look_like_a_cancellation_spike()
+    {
+        // The flaw cohort attribution fixes: a busy hour (1,200 orders, 3% cancelled 25 min later), then demand drops to a quarter.
+        // By arrival time, the quiet hour receives the busy hour's trailing cancellations over far fewer new orders.
+        var events = new List<OrderEvent>();
+        for (var i = 0; i < 1200; i++)
+        {
+            events.Add(Order(EventTypes.Placed, $"a-{i}", At(i * 0.05), zone: "z-02"));
+            if (i % 33 == 0)
+            {
+                events.Add(Order(EventTypes.Cancelled, $"a-{i}", At((i * 0.05) + 25), zone: "z-02"));
+            }
+        }
+
+        for (var i = 0; i < 300; i++)
+        {
+            events.Add(Order(EventTypes.Placed, $"b-{i}", At(60 + (i * 0.2)), zone: "z-02"));
+            if (i % 33 == 0)
+            {
+                events.Add(Order(EventTypes.Cancelled, $"b-{i}", At(60 + (i * 0.2) + 25), zone: "z-02"));
+            }
+        }
+
+        var ordered = events.OrderBy(e => e.OccurredAt).Append(Tick(At(130))).ToList();
+        var cohort = Engine(baselines: new FixedBaseline(0.03), rules: RuleB).FeedAll(ordered);
+        var byArrival = Engine(baselines: new FixedBaseline(0.03), rules: RuleB with { CohortBy = null }).FeedAll(ordered);
+
+        Assert.DoesNotContain(cohort, c => c.Status == CandidateStatus.Firing);
+        Assert.Contains(byArrival, c => c.Status == CandidateStatus.Firing); // the old definition raises a false spike
     }
 
     [Fact]

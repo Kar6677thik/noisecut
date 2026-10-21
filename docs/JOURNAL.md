@@ -5,6 +5,47 @@ Each milestone PR adds at least one entry. Decisions that need more than a line 
 
 ---
 
+## 2026-10-21 — M3: Prove (fix every failure, measure again)
+
+**What**
+- **Checkpointed, per-partition order stage** (`Engine/Robust/`):
+  - one `RuleEngine` per partition, with versioned JSON state;
+  - checkpoints = producer flush, then state + next offset in one PostgreSQL transaction (migration 0003), then a Kafka commit for lag visibility;
+  - cooperative-sticky rebalancing with restore on assign and checkpoint on revoke;
+  - a failed produce stops the stage.
+- **Fencing and fast restarts** (ADR-0014): PostgreSQL epoch fencing tokens, plus Kafka static membership.
+- **Event time:** per-partition watermarks, 2 minutes of allowed lateness, a `late-events` topic, and order-insensitive absence.
+- **Zone stage:** `ZonePartialEmitter` → `zone-partials` → `ZoneStageEngine` (latest-by-seq merge, minimum source watermark), plus live `zone_hourly_stats` writes.
+- **Notifier policy:** cooldown, grouping (`GroupFlusher`), escalation (`Escalator`), email via Mailpit (MailKit), and `POST /api/alerts/{key}/ack`.
+- **Harness:** profile-tagged result files, a `--rate`/`--round-seconds` restart for the crash test, and the `load` experiment (Experiment 5).
+- **Defaults:** Compose defaults to `robust` now; `NOISECUT_PROFILE=naive` brings M2 back.
+- **Tests:** 118 unit tests (determinism across checkpoint/restore, event time, lateness, cohorts, zone merge) and 28 integration tests (fencing, cooldown, grouping, escalation).
+
+**Results** (before → after, on the same laptop)
+| Experiment | Before | After |
+|------------|--------|-------|
+| 1: 5 kills mid-incident | 4 extra alerts; detection 58 s when killed early | 0 extra; 19–29 s regardless |
+| 1: **20 kills under 2× load** (criterion 3) | — | **21/21 detected, 0 extra alerts, 0 duplicate webhooks** |
+| 2A: out-of-order | 43 false alerts/sim-hour | **0** |
+| 2B: 120 s stall | 6 + 1,428 false alerts | **0** |
+| 3: storm, 8 restaurants | 1,164 notifications, 566 duplicates | **4 notifications, 0 duplicates** |
+| 4: z-03, 3 engines | missed | **detected in 222 s** (1 engine: 214 s) |
+| 5: load | — | p95 detection latency ≈ 10 ms at 1×, 2× and 4× (782 events/s); p99 ≤ 166 ms |
+
+**Findings (each written up)**
+- **Rule B measured two populations** (ADR-0015). The first robust demo raised a false spike after a demand drop, because cancellations
+  trail placements by up to 35 min. Cohort attribution fixed it. The Experiment 4 control was re-run on the new rule so before/after compare like with like.
+- **Dropping too-late events broke the absence rule** (Exp 2 page). The first robust Experiment 2 had *more* false alerts (86) than naive (61).
+  Absence rules now still apply late events. The code had diverged from SPEC §5.4.
+- **Restarts used to stall for 45 s** waiting for the dead member's session to expire. Static membership removed that.
+- **Group generation as an epoch was not available** from the .NET client. A PostgreSQL fencing token is simpler and testable.
+- **A transitive package had published vulnerabilities**: MailKit pulled `System.Security.Cryptography.Pkcs` 10.0.0, and
+  warnings-as-errors stopped the build. It is now pinned to 10.0.13 with central transitive pinning.
+
+**Next:** M4 Deploy. Hardened images, k3s manifests, GitHub Actions CD over Tailscale, admin login, and the public read-only showcase.
+
+---
+
 ## 2026-10-19 — M2: Break (measure every failure, fix none)
 
 **What**

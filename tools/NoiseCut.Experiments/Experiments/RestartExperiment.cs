@@ -21,14 +21,18 @@ public static class RestartExperiment
             ["simulator"] = new Dictionary<string, string> { ["Simulator__StartAtLocalHour"] = "12" },
         };
 
-    public static async Task RunAsync(Stack stack, int rounds)
+    public static async Task RunAsync(Stack stack, int rounds, TimeSpan roundDuration, double? rate = null)
     {
         // One restaurant per zone, so rounds never share a partition-local window by accident.
-        string[] restaurants = ["r-003", "r-013", "r-023", "r-033", "r-043", "r-053", "r-007", "r-017", "r-027", "r-037", "r-047"];
+        // A different restaurant every round (cycling through zones), so cooldowns and windows never carry over between rounds.
+        var restaurants = Enumerable.Range(0, 60).Select(i => $"r-{(i % 6 * 10) + (i / 6) + 1:000}").ToArray();
         int[] killAfterSeconds = [15, 30, 45, 60, 90];
-        var roundDuration = TimeSpan.FromSeconds(150);
-
         await stack.StartFreshAsync();
+        if (rate is { } r)
+        {
+            await stack.Client.SetRateAsync(r);
+            stack.Run.Log($"load: {r} orders/sim-min");
+        }
         var plan = new List<(int Round, string Restaurant, int? KillAfter, string ScenarioId)>();
 
         for (var round = 0; round <= rounds; round++)
@@ -83,6 +87,8 @@ public static class RestartExperiment
         var totals = truth["totals"]!;
         stack.Run.Results["rounds"] = table;
         stack.Run.Results["kills"] = rounds;
+        stack.Run.Results["fencedCheckpoints"] = await stack.Client.QueryScalarAsync("sum(noisecut_checkpoints_fenced_total) or vector(0)");
+        stack.Run.Results["lateEventsDropped"] = await stack.Client.QueryScalarAsync("sum(noisecut_late_events_total{outcome=\"dropped\"}) or vector(0)");
         stack.Run.Results["missedIncidents"] = missed;
         stack.Run.Results["extraAlertsForSameIncident"] = extraAlerts;
         stack.Run.Results["sinkReceipts"] = totals["sinkReceipts"]!.DeepClone();

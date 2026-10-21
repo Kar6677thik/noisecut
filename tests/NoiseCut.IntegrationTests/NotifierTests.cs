@@ -36,7 +36,7 @@ public class NotifierTests(PostgresFixture postgres)
         var catalog = new RuleCatalog(new RuleStore(db), NullLogger<RuleCatalog>.Instance);
         await catalog.StartAsync(CancellationToken.None);
         await catalog.Ready.Task;
-        return new CandidateIntake(db, catalog, Options.Create(new NotifierOptions { Dedup = dedup }), NullLogger<CandidateIntake>.Instance);
+        return new CandidateIntake(db, catalog, Options.Create(new NotifierOptions { Dedup = dedup }), TimeProvider.System, NullLogger<CandidateIntake>.Instance);
     }
 
     private static string Key() => $"restaurant-delay-burst:1:r-017:{Guid.NewGuid():N}";

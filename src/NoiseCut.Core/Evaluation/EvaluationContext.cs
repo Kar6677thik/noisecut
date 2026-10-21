@@ -7,11 +7,13 @@ public sealed record RecordInfo(Guid? EventId, DateTimeOffset ProducedAt, int Pa
 
 /// <summary>
 /// Everything an evaluator may touch while handling one record: the current watermark, the emit mode,
-/// and an output list. Evaluators never talk to Kafka or the clock directly, which keeps them deterministic and testable.
+/// and output lists. Evaluators never talk to Kafka or the clock directly, which keeps them deterministic and testable.
 /// </summary>
 public sealed class EvaluationContext(EvaluationSettings settings, TimeProvider wallClock, string instance, string stage)
 {
     private readonly List<AlertCandidate> _output = [];
+    private readonly List<ZonePartial> _partials = [];
+    private readonly List<ClosedHour> _closedHours = [];
 
     public EvaluationSettings Settings { get; } = settings;
 
@@ -21,7 +23,20 @@ public sealed class EvaluationContext(EvaluationSettings settings, TimeProvider 
 
     public IReadOnlyList<AlertCandidate> Output => _output;
 
-    internal void Clear() => _output.Clear();
+    public IReadOnlyList<ZonePartial> Partials => _partials;
+
+    public IReadOnlyList<ClosedHour> ClosedHours => _closedHours;
+
+    internal void Clear()
+    {
+        _output.Clear();
+        _partials.Clear();
+        _closedHours.Clear();
+    }
+
+    internal void EmitPartial(ZonePartial partial) => _partials.Add(partial);
+
+    internal void EmitClosedHour(ClosedHour hour) => _closedHours.Add(hour);
 
     public void Emit(
         Rule rule,

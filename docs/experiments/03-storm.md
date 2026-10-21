@@ -44,4 +44,28 @@ Run `results/storm-20261019-131145.json`, on the same code and machine as Experi
 545 rule-A candidates and 542 duplicate webhooks. The order of magnitude is stable; the exact count depends on the random lifecycle.*
 
 ## After (M3)
-*To be recorded.*
+
+Run `results/storm-robust-20261021-083847.json`: profile `robust`, same scenario and machine.
+
+| | Before (naive) | **After (robust)** |
+|---|---:|---:|
+| Real incidents | 1 (8 restaurants) | 1 (8 restaurants) |
+| Alerts (episodes) | 8 | 8 |
+| Candidates received | 582 | **16** (8 firing + 8 resolved) |
+| Notifications delivered | 1,164 | **4** |
+| Duplicate webhooks | 566 | **0** |
+| Time to the first alert | 22.3 s | 22.2 s |
+
+The 4 notifications are, on each of the two channels (dashboard and webhook):
+- **one firing message**, "[HIGH] Restaurant delay burst · 8 alerts in Koramangala", listing every restaurant; and
+- **one resolved message** when the storm was over.
+
+Detection did not slow down, and none of the 8 alerts was lost; they are listed inside the group message and on the dashboard.
+
+Where each stage cut (from the notifier's `noisecut_suppressed_total`):
+1. **`OnTransition`** in the engine took candidates from 582 to 16. A firing alert is announced once, not on every matching event.
+2. **Grouping** (`groupBy: zoneId`, `groupWait: 30s`) turned 8 alerts into 1 message per channel. The resolutions were grouped the same way.
+3. **Dedup and cooldown** had nothing left to do in this run. They are what absorbs crash replays (Experiment 1) and flapping.
+
+The peak-per-minute PromQL figure is omitted for the robust run: with 4 increments in total, `rate()` over 1-minute windows mostly
+misses the first increment of a newly created series, and reports 0. The totals above come from the database.

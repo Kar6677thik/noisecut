@@ -15,6 +15,8 @@ public sealed class RuleCatalog(RuleStore store, ILogger<RuleCatalog> logger) : 
 
     public Rule? Find(string ruleId) => _rules.GetValueOrDefault(ruleId);
 
+    public IReadOnlyCollection<Rule> All() => [.. _rules.Values];
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)

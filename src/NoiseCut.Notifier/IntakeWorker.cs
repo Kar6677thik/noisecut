@@ -25,7 +25,6 @@ public sealed class IntakeWorker(
     private async Task RunAsync(CancellationToken ct)
     {
         var options = notifierOptions.Value;
-        options.EnsureSupported();
         await rules.Ready.Task.WaitAsync(ct);
 
         using var consumer = new ConsumerBuilder<string?, byte[]>(new ConsumerConfig

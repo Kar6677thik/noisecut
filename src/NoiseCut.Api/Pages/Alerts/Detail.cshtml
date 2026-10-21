@@ -18,6 +18,8 @@
     <dt>Episode start</dt><dd>@Fmt.Sim(a.EpisodeStart) <span class="sub">(event time)</span></dd>
     <dt>First detected</dt><dd>@Fmt.Wall(a.FirstDetectedAt)</dd>
     <dt>Resolved</dt><dd>@Fmt.Wall(a.ResolvedAt)</dd>
+    <dt>Acknowledged</dt><dd>@Fmt.Wall(a.AckedAt)</dd>
+    <dt>Suppressed by cooldown</dt><dd>@a.SuppressedCount later episode(s) for the same entity</dd>
     <dt>Alert key</dt><dd><code>@a.AlertKey</code></dd>
     <dt>Observed</dt><dd><code>@a.Observed</code></dd>
 </dl>

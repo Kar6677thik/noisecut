@@ -67,4 +67,24 @@ other experiments.
    stage sums them (M3, ADR-0004). That is the "shuffle" of MapReduce and the `repartition()` of Kafka Streams.
 
 ## After (M3)
-*To be recorded.*
+
+Zone z-03 at 80 orders/sim-min, the case that missed completely. Between M2 and M3, rule B changed to cohort attribution (ADR-0015),
+so the naive run was **repeated with the new rule** as a control. Before and after differ only in the profile.
+
+| Profile | Engines | Detected | Time to detect | Engines' own shares of z-03 | What the alert reported |
+|---------|--------:|:--------:|---------------:|-----------------------------|------------------------|
+| naive (control, new rule) | 1 | yes | 230 s | 100% | 22/307 orders |
+| naive (control, new rule) | 3 | **no** | — | 38% / 34% / 28% | *(nothing)* |
+| **robust** | 1 | yes | 214 s | 100% | 17/300 orders |
+| **robust** | **3** | **yes** | **222 s** | 37% / 33% / 30% | **19/300 orders**: the merged zone total |
+
+Runs: `results/scale-naive-20261021-090217.json` and `results/scale-robust-20261021-084321.json`.
+
+### What changed
+- Each order-stage engine still sees only about a third of z-03. Its own counts (`noisecut_engine_zone_hour_orders`, "placed") remain partial by design.
+- Every pane close, each partition publishes its cumulative per-zone counts to `zone-partials`, keyed by zone. Every partial for z-03
+  therefore reaches one zone-stage owner, which keeps the latest partial per source partition and sums them.
+- The zone stage's watermark is the minimum of the six source watermarks, so it never judges an hour before all partitions have reported.
+- **With 3 engines, the merged count reached the 300-order guard as fast as with 1 engine.** Detection was 222 s against 214 s,
+  within run-to-run noise, and the alert reported the true zone total.
+- Restaurant and order rules were unaffected throughout. They never needed the shuffle, because their key matches the partition key.

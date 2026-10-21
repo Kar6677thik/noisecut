@@ -54,6 +54,14 @@ public sealed record RuleDefinition
 
     public GuardsSpec? Guards { get; init; }
 
+    /// <summary>
+    /// Cohort semantics (M3): attribute each numerator event to the window of the denominator event with the same value of this
+    /// field. For rule B with "orderId": "of the orders <i>placed</i> this hour, what fraction were cancelled", instead of
+    /// "cancellations that happened this hour ÷ orders placed this hour", which compares two different populations and
+    /// inflates the rate whenever demand drops (found in M3; see the journal).
+    /// </summary>
+    public string? CohortBy { get; init; }
+
     // --- absence ---
     public EventSelector? Trigger { get; init; }
 

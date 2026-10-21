@@ -52,4 +52,40 @@ Totals: 5 kills · **0 missed incidents** · **4 extra alerts** for incidents th
 **Caveat:** this is one run of 5 kills. M3 will repeat it with 20 or more kills under load (acceptance criterion 3).
 
 ## After (M3)
-*To be recorded.*
+
+Profile `robust`:
+- per-partition state, checkpointed together with offsets after a producer flush (ADR-0005);
+- epoch fencing and static membership (ADR-0014);
+- event time, `OnTransition`, and notifier dedup, cooldown and grouping.
+
+Same machine as before. Code: the M3 working tree on top of `6341aa6`.
+
+### Same 5-kill run (`results/restart-robust-20261021-073253.json`)
+
+| Round | Kill after | Detected | Time to first alert | Alerts for this one incident |
+|------:|-----------:|:--------:|--------------------:|-----------------------------:|
+| 0 (control) | — | yes | 29.0 s | 1 |
+| 1 | 15 s | yes | **23.3 s** (naive: 58.4 s) | 1 |
+| 2 | 30 s | yes | 27.7 s | **1** (naive: 2) |
+| 3 | 45 s | yes | 26.7 s | **1** (naive: 2) |
+| 4 | 60 s | yes | 28.8 s | **1** (naive: 2) |
+| 5 | 90 s | yes | 22.3 s | **1** (naive: 2) |
+
+### The acceptance test: 20 kills under 2× load (`results/restart-robust-20261021-074909.json`)
+- **Setup:** rate 600 orders/sim-min, 90-second rounds, a kitchen meltdown at a different restaurant every round, and SIGKILL after 15/30/45/60/90 s, cycling, for rounds 1–20.
+- **Results:**
+  - **21 of 21 incidents detected**, in 19.3–29.2 s, with no visible penalty for being killed;
+  - **0 extra alerts**: every incident produced exactly one alert;
+  - **0 duplicate webhooks** out of 41 receipts;
+  - 0 false positives, 0 fenced checkpoints, 0 dropped late events.
+
+SPEC §16 acceptance criterion 3 ("0 duplicate notifications across ≥ 20 forced engine crashes under load") is met.
+
+### Why each symptom went away
+- **The restart no longer loses the window.** The new process restores the partition's state from the checkpoint taken at most 5 s
+  before the kill, seeks to that offset and replays. Round 1, killed before detection, now detects as fast as the control.
+- **Replays produce the same key.** Episodes start at event-time panes, so replaying records produces the same `alertKey`.
+  When a candidate was emitted twice (round 2 above shows 3 candidates for 1 alert), the notifier's intake log recorded the repeat
+  and sent nothing. That is "dedup needs determinism" from M2, resolved.
+- **No 45-second stall.** With static membership the restarted container reclaims its partitions within seconds. Without it, the
+  dead member's session would have to expire first.

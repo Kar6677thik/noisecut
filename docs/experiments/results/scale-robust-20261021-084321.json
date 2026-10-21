@@ -1,0 +1,151 @@
+{
+  "experiment": "scale-robust",
+  "startedAt": "2026-10-21T08:43:21.1796143+00:00",
+  "durationSeconds": 503,
+  "commit": "6341aa6\u002Bdirty",
+  "machine": {
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "logicalCpus": 14,
+    "docker": "14 CPUs, 7751794688 bytes, server 28.4.0"
+  },
+  "configuration": {
+    "profile": "robust",
+    "serviceOverrides": {
+      "engine": {
+        "Engine__EmitMode": "OnTransition"
+      },
+      "simulator": {
+        "Simulator__StartAtLocalHour": "16.5"
+      }
+    },
+    "observeSeconds": 360,
+    "zone": "z-03",
+    "rate": 80
+  },
+  "results": {
+    "runs": [
+      {
+        "zone": "z-03",
+        "ordersPerSimMinute": 80,
+        "engines": 1,
+        "detected": true,
+        "secondsToDetect": 214.3,
+        "alerts": 1,
+        "alertDetails": [
+          "cancellation rate 5.7% vs baseline 2.4% (17/300 orders), threshold 2x"
+        ],
+        "truthPlacedThisHourAtSnapshot": 274,
+        "enginesWithZoneData": 1,
+        "engineViewsAtSnapshot": [
+          {
+            "instance": "172.19.0.8:9464",
+            "placedSeen": 269,
+            "shareOfZone": 1
+          }
+        ],
+        "observeSeconds": 360
+      },
+      {
+        "zone": "z-03",
+        "ordersPerSimMinute": 80,
+        "engines": 3,
+        "detected": true,
+        "secondsToDetect": 221.8,
+        "alerts": 1,
+        "alertDetails": [
+          "cancellation rate 6.3% vs baseline 2.4% (19/300 orders), threshold 2x"
+        ],
+        "truthPlacedThisHourAtSnapshot": 281,
+        "enginesWithZoneData": 3,
+        "engineViewsAtSnapshot": [
+          {
+            "instance": "172.19.0.10:9464",
+            "placedSeen": 102,
+            "shareOfZone": 0.37
+          },
+          {
+            "instance": "172.19.0.13:9464",
+            "placedSeen": 92,
+            "shareOfZone": 0.33
+          },
+          {
+            "instance": "172.19.0.12:9464",
+            "placedSeen": 83,
+            "shareOfZone": 0.3
+          }
+        ],
+        "observeSeconds": 360
+      }
+    ]
+  },
+  "steps": [
+    {
+      "t": 0,
+      "step": "=== scale (profile robust) ==="
+    },
+    {
+      "t": 0,
+      "step": "RUN with 1 engine(s) at 80 orders/sim-min, spike in z-03"
+    },
+    {
+      "t": 0,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 0,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 2.3,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 11.6,
+      "step": "stack ready; sim time 2026-10-21T11:00:16\u002B00:00, demand factor 0.5"
+    },
+    {
+      "t": 11.6,
+      "step": "waiting 15s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 26.7,
+      "step": "waiting 200s: zone-hour counts build up"
+    },
+    {
+      "t": 246.9,
+      "step": "1 engine(s) @ 80: detected=true after 214.3s; truth 274; views [{\u0022instance\u0022:\u0022172.19.0.8:9464\u0022,\u0022placedSeen\u0022:269,\u0022shareOfZone\u0022:1}]"
+    },
+    {
+      "t": 246.9,
+      "step": "RUN with 3 engine(s) at 80 orders/sim-min, spike in z-03"
+    },
+    {
+      "t": 246.9,
+      "step": "fresh stack: down -v, then up with 3 engine(s)"
+    },
+    {
+      "t": 246.9,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 249.2,
+      "step": "$ docker compose up -d --scale engine=3"
+    },
+    {
+      "t": 257.9,
+      "step": "stack ready; sim time 2026-10-21T11:00:01\u002B00:00, demand factor 0.5"
+    },
+    {
+      "t": 257.9,
+      "step": "waiting 15s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 273.1,
+      "step": "waiting 200s: zone-hour counts build up"
+    },
+    {
+      "t": 503.2,
+      "step": "3 engine(s) @ 80: detected=true after 221.8s; truth 281; views [{\u0022instance\u0022:\u0022172.19.0.10:9464\u0022,\u0022placedSeen\u0022:102,\u0022shareOfZone\u0022:0.37},{\u0022instance\u0022:\u0022172.19.0.13:9464\u0022,\u0022placedSeen\u0022:92,\u0022shareOfZone\u0022:0.33},{\u0022instance\u0022:\u0022172.19.0.12:9464\u0022,\u0022placedSeen\u0022:83,\u0022shareOfZone\u0022:0.3}]"
+    }
+  ]
+}

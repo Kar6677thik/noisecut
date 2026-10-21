@@ -1,0 +1,499 @@
+{
+  "experiment": "out-of-order-robust",
+  "startedAt": "2026-10-21T08:22:21.9592415+00:00",
+  "durationSeconds": 985,
+  "commit": "6341aa6\u002Bdirty",
+  "machine": {
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "logicalCpus": 14,
+    "docker": "14 CPUs, 7751794688 bytes, server 28.4.0"
+  },
+  "configuration": {
+    "profile": "robust",
+    "serviceOverrides": {
+      "engine": {
+        "Engine__EmitMode": "OnTransition"
+      },
+      "simulator": {
+        "Simulator__StartAtLocalHour": "12"
+      }
+    },
+    "chaosSeconds": 360,
+    "pauseSeconds": 120
+  },
+  "results": {
+    "partA": {
+      "simHours": 1.42,
+      "falseAlertsByRule": {
+        "stuck-pickup": 86
+      },
+      "falseAlertsPerSimHour": {
+        "stuck-pickup": 60.7
+      },
+      "ordersCreated": 26877,
+      "eventsHeldBack": 651,
+      "falseAlertsWhere": [
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-027",
+          "groupKey": "r-027",
+          "alerts": 5
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-049",
+          "groupKey": "r-049",
+          "alerts": 4
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-011",
+          "groupKey": "r-011",
+          "alerts": 4
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-028",
+          "groupKey": "r-028",
+          "alerts": 4
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-026",
+          "groupKey": "r-026",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-036",
+          "groupKey": "r-036",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-059",
+          "groupKey": "r-059",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-013",
+          "groupKey": "r-013",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-017",
+          "groupKey": "r-017",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-019",
+          "groupKey": "r-019",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-020",
+          "groupKey": "r-020",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-005",
+          "groupKey": "r-005",
+          "alerts": 3
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-003",
+          "groupKey": "r-003",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-006",
+          "groupKey": "r-006",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-008",
+          "groupKey": "r-008",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-012",
+          "groupKey": "r-012",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-021",
+          "groupKey": "r-021",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-022",
+          "groupKey": "r-022",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-034",
+          "groupKey": "r-034",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-044",
+          "groupKey": "r-044",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-047",
+          "groupKey": "r-047",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-048",
+          "groupKey": "r-048",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-050",
+          "groupKey": "r-050",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-054",
+          "groupKey": "r-054",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-056",
+          "groupKey": "r-056",
+          "alerts": 2
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-033",
+          "groupKey": "r-033",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-051",
+          "groupKey": "r-051",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-035",
+          "groupKey": "r-035",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-010",
+          "groupKey": "r-010",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-038",
+          "groupKey": "r-038",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-039",
+          "groupKey": "r-039",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-043",
+          "groupKey": "r-043",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-052",
+          "groupKey": "r-052",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-053",
+          "groupKey": "r-053",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-057",
+          "groupKey": "r-057",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-007",
+          "groupKey": "r-007",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-004",
+          "groupKey": "r-004",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-025",
+          "groupKey": "r-025",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-023",
+          "groupKey": "r-023",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-018",
+          "groupKey": "r-018",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-014",
+          "groupKey": "r-014",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-029",
+          "groupKey": "r-029",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-030",
+          "groupKey": "r-030",
+          "alerts": 1
+        },
+        {
+          "ruleId": "stuck-pickup",
+          "entityKey": "r-032",
+          "groupKey": "r-032",
+          "alerts": 1
+        }
+      ]
+    },
+    "partB": {
+      "falseAlertsDuringControl": {},
+      "falseAlertsAfterPauseTotal": {},
+      "pauseSeconds": 120,
+      "lagRecordsBeforeResume": 27334,
+      "scenarios": [
+        {
+          "id": "01a15d96-f11c-701a-8b84-96df61ed24e5",
+          "name": "slow-kitchen",
+          "target": "r-005",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:17\u002B00:00",
+          "endsAt": "2026-10-21T08:35:17\u002B00:00",
+          "injectedAt": "2026-10-21T08:32:15.774352\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15d96-f1ab-75b6-af60-9c7f1fb4b5bc",
+          "name": "slow-kitchen",
+          "target": "r-015",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:18\u002B00:00",
+          "endsAt": "2026-10-21T08:35:18\u002B00:00",
+          "injectedAt": "2026-10-21T08:32:15.788563\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15d96-f1b1-782a-bdf7-9fc7769807d2",
+          "name": "slow-kitchen",
+          "target": "r-025",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:18\u002B00:00",
+          "endsAt": "2026-10-21T08:35:18\u002B00:00",
+          "injectedAt": "2026-10-21T08:32:15.793526\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15d96-f1b4-7d3e-b50f-b9d282e3564c",
+          "name": "slow-kitchen",
+          "target": "r-035",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:18\u002B00:00",
+          "endsAt": "2026-10-21T08:35:18\u002B00:00",
+          "injectedAt": "2026-10-21T08:32:15.796479\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15d96-f1b7-79f0-929f-d3efcb29c951",
+          "name": "slow-kitchen",
+          "target": "r-045",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:18\u002B00:00",
+          "endsAt": "2026-10-21T08:35:18\u002B00:00",
+          "injectedAt": "2026-10-21T08:32:15.799485\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        },
+        {
+          "id": "01a15d96-f1ba-759b-a1f0-6e0e2848a2d3",
+          "name": "slow-kitchen",
+          "target": "r-055",
+          "expectedRule": null,
+          "startsAt": "2026-10-21T06:35:18\u002B00:00",
+          "endsAt": "2026-10-21T08:35:18\u002B00:00",
+          "injectedAt": "2026-10-21T08:32:15.802318\u002B00:00",
+          "matchingAlerts": 0,
+          "otherAlerts": 0,
+          "secondsToDetect": null,
+          "candidates": 0,
+          "detected": null
+        }
+      ],
+      "rules": [],
+      "falseAlertsWhere": []
+    }
+  },
+  "steps": [
+    {
+      "t": 0,
+      "step": "=== out-of-order (profile robust) ==="
+    },
+    {
+      "t": 0,
+      "step": "PART A: out-of-order delivery, no incidents"
+    },
+    {
+      "t": 0,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 0,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 2.6,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 12.1,
+      "step": "stack ready; sim time 2026-10-21T06:30:16\u002B00:00, demand factor 1"
+    },
+    {
+      "t": 12.1,
+      "step": "waiting 30s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 42.1,
+      "step": "chaos on: 1% of events held back up to 60 s"
+    },
+    {
+      "t": 42.1,
+      "step": "waiting 360s: out-of-order traffic"
+    },
+    {
+      "t": 402.2,
+      "step": "chaos off"
+    },
+    {
+      "t": 402.2,
+      "step": "waiting 150s: timers armed during chaos (20 sim min = 2 wall min) come due"
+    },
+    {
+      "t": 552.2,
+      "step": "PART B: consumer lag with near-miss restaurants, no incidents"
+    },
+    {
+      "t": 552.2,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 552.2,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 554.5,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 563.6,
+      "step": "stack ready; sim time 2026-10-21T06:30:16\u002B00:00, demand factor 1"
+    },
+    {
+      "t": 563.6,
+      "step": "waiting 30s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 593.8,
+      "step": "slow-kitchen at 6 restaurants (bad delays, never 5 within 10 min)"
+    },
+    {
+      "t": 593.8,
+      "step": "waiting 180s: control period: engine keeps up"
+    },
+    {
+      "t": 773.9,
+      "step": "$ docker compose pause engine"
+    },
+    {
+      "t": 774.1,
+      "step": "waiting 120s: engine paused: the backlog builds up"
+    },
+    {
+      "t": 894.1,
+      "step": "$ docker compose exec -T redpanda rpk group describe noisecut-engine"
+    },
+    {
+      "t": 894.4,
+      "step": "$ docker compose unpause engine"
+    },
+    {
+      "t": 894.5,
+      "step": "engine resumed"
+    },
+    {
+      "t": 894.5,
+      "step": "waiting 90s: engine catches up"
+    }
+  ]
+}

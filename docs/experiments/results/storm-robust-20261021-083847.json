@@ -1,0 +1,76 @@
+{
+  "experiment": "storm-robust",
+  "startedAt": "2026-10-21T08:38:47.6048614+00:00",
+  "durationSeconds": 272,
+  "commit": "6341aa6\u002Bdirty",
+  "machine": {
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "logicalCpus": 14,
+    "docker": "14 CPUs, 7751794688 bytes, server 28.4.0"
+  },
+  "configuration": {
+    "profile": "robust",
+    "serviceOverrides": {
+      "simulator": {
+        "Simulator__StartAtLocalHour": "12"
+      }
+    },
+    "observeSeconds": 210
+  },
+  "results": {
+    "restaurantsInStorm": 8,
+    "realIncidents": 1,
+    "candidatesIn": 16,
+    "alerts": 8,
+    "notificationsSent": 4,
+    "duplicateWebhooks": 0,
+    "secondsToFirstAlert": 22.2,
+    "peakCandidatesPerMinute": 8.7,
+    "peakNotificationsPerMinute": 0,
+    "notificationsByChannel": {
+      "dashboard": 2,
+      "webhook": 2
+    },
+    "candidatesByRule": {
+      "restaurant-delay-burst": 16
+    }
+  },
+  "steps": [
+    {
+      "t": 0,
+      "step": "=== storm (profile robust) ==="
+    },
+    {
+      "t": 0,
+      "step": "fresh stack: down -v, then up with 1 engine(s)"
+    },
+    {
+      "t": 0,
+      "step": "$ docker compose down -v --remove-orphans"
+    },
+    {
+      "t": 2.5,
+      "step": "$ docker compose up -d --scale engine=1"
+    },
+    {
+      "t": 12.2,
+      "step": "stack ready; sim time 2026-10-21T06:30:16\u002B00:00, demand factor 1"
+    },
+    {
+      "t": 12.2,
+      "step": "waiting 30s: warm-up: consumers join their groups, windows fill with normal traffic"
+    },
+    {
+      "t": 42.4,
+      "step": "alert-storm in z-01 at 8 restaurants"
+    },
+    {
+      "t": 42.4,
+      "step": "waiting 210s: the storm plays out"
+    },
+    {
+      "t": 252.4,
+      "step": "waiting 20s: let the outbox drain"
+    }
+  ]
+}

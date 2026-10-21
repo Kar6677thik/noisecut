@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using NoiseCut.Core.Events;
 using NoiseCut.Core.Rules;
 using NoiseCut.Core.Time;
@@ -105,7 +106,7 @@ internal sealed class WindowedCountEvaluator : IRuleEvaluator
             }
         }
 
-        CollectGarbage(closed);
+        CollectGarbage(closed, ctx.Settings.AllowedLateness);
     }
 
     private void CheckResolution(string entityKey, EntityState state, DateTimeOffset from, DateTimeOffset to, EvaluationContext ctx)
@@ -192,10 +193,11 @@ internal sealed class WindowedCountEvaluator : IRuleEvaluator
         return (distinct.Count, samples);
     }
 
-    private void CollectGarbage(DateTimeOffset closed)
+    private void CollectGarbage(DateTimeOffset closed, TimeSpan allowedLateness)
     {
-        // The oldest window still able to change ends at closed + 1 pane; anything before its first pane is dead.
-        var keepFrom = WindowStartFor(closed + Panes.Size);
+        // The oldest window still able to change ends at closed + 1 pane; anything before its first pane is dead,
+        // except that a late event (up to allowedLateness behind) may still land in an older pane.
+        var keepFrom = WindowStartFor(closed + Panes.Size) - allowedLateness;
         var emptyEntities = new List<string>();
         foreach (var (entityKey, state) in _entities)
         {
@@ -216,12 +218,43 @@ internal sealed class WindowedCountEvaluator : IRuleEvaluator
         }
     }
 
+    public JsonNode SaveState() => StateJson.To(new State(
+        _lastClosed,
+        _entities.Select(e => new EntityDto(
+            e.Key,
+            e.Value.GroupKey,
+            e.Value.CrossedPane,
+            e.Value.Panes.Select(p => new PaneDto(p.Key, new Dictionary<string, Guid>(p.Value, StringComparer.Ordinal))).ToList())).ToList()));
+
+    public void LoadState(JsonNode state)
+    {
+        var s = StateJson.From<State>(state);
+        _lastClosed = s.LastClosed;
+        _entities.Clear();
+        foreach (var e in s.Entities)
+        {
+            var entity = new EntityState(e.GroupKey) { CrossedPane = e.CrossedPane };
+            foreach (var p in e.Panes)
+            {
+                entity.Panes[p.Pane] = new Dictionary<string, Guid>(p.Members, StringComparer.Ordinal);
+            }
+
+            _entities[e.Key] = entity;
+        }
+    }
+
     private bool Holds(int count) => _condition.Op == ConditionOp.Gt ? count > _condition.Value : count >= _condition.Value;
 
     private DateTimeOffset WindowStartFor(DateTimeOffset endPane) => endPane - _size + Panes.Size;
 
     // The episode starts at the first pane of the window that first crossed the threshold (SPEC §5.2).
     private DateTimeOffset EpisodeStartFor(DateTimeOffset crossedPane) => WindowStartFor(crossedPane);
+
+    private sealed record State(DateTimeOffset? LastClosed, List<EntityDto> Entities);
+
+    private sealed record EntityDto(string Key, string GroupKey, DateTimeOffset? CrossedPane, List<PaneDto> Panes);
+
+    private sealed record PaneDto(DateTimeOffset Pane, Dictionary<string, Guid> Members);
 
     private sealed class EntityState(string groupKey)
     {

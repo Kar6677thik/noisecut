@@ -50,6 +50,8 @@ public static class Endpoints
             await sim.ForwardAsync("/config", await ReadBodyAsync(request, ct), ct));
         admin.MapGet("/simulator/status", async (SimulatorClient sim, CancellationToken ct) => await sim.GetAsync("/status", ct));
         admin.MapGet("/simulator/scenarios", async (SimulatorClient sim, CancellationToken ct) => await sim.GetAsync("/scenarios", ct));
+        admin.MapPost("/alerts/{key}/ack", async (string key, DashboardQueries q) =>
+            await q.AckAsync(key) ? Results.Ok(new { acknowledged = key }) : Results.NotFound(new { error = "no firing alert with that key" }));
         admin.MapGet("/simulator/chaos", async (SimulatorClient sim, CancellationToken ct) => await sim.GetAsync("/chaos", ct));
         admin.MapPost("/simulator/chaos", async (HttpRequest request, SimulatorClient sim, CancellationToken ct) =>
             await sim.ForwardAsync("/chaos", await ReadBodyAsync(request, ct), ct));
