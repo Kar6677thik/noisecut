@@ -42,7 +42,20 @@
           const value = stats[el.dataset.stat];
           if (value !== undefined) el.textContent = Number(value).toLocaleString("en-US");
         }
-      } catch { /* the next notification will try again */ }
+      } catch { /* the next refresh will try again */ }
     }, 1000);
   }
+
+  // The robust profile notifies rarely by design, so notifications alone can't keep the page current. Every 5 s, also
+  // refresh the counters and re-render "Firing now" from the server (the same markup the page was first rendered with).
+  const firing = document.getElementById("firing");
+  setInterval(async () => {
+    if (document.hidden) return;
+    scheduleStatsRefresh();
+    try {
+      const html = await (await fetch(location.pathname)).text();
+      const fresh = new DOMParser().parseFromString(html, "text/html").getElementById("firing");
+      if (fresh) firing.replaceChildren(...fresh.childNodes);
+    } catch { /* keep what is shown; the next tick will try again */ }
+  }, 5000);
 })();
