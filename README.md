@@ -18,18 +18,18 @@ or fall behind, and **alert storms** that train people to ignore the channel.
 Eight restaurants in one zone melt down at the same time. The same data runs through two configurations of the same system.
 
 <p align="center">
-  <img src="docs/assets/storm-demo.gif" alt="Alert storm: the naive profile sends hundreds of notifications and duplicate webhooks; NoiseCut sends one grouped notification with no duplicates" width="800">
+  <img src="docs/assets/storm-demo.gif" alt="Alert storm: the naive profile sends hundreds of notifications and duplicate webhooks; NoiseCut sends one grouped notification with no duplicates" width="900">
 </p>
 
 | Same storm, same data | Naive pipeline | NoiseCut |
 |---|---:|---:|
 | Incidents detected | 8 of 8 | 8 of 8 |
-| Candidate signals reaching the notifier | 358 and climbing | **8** |
-| Notifications sent | 712 and climbing | **2** (one grouped message per channel) |
-| Duplicate webhook deliveries | 348 | **0** |
+| Candidate signals reaching the notifier | 555 | **8** |
+| Notifications sent | 1,110 | **2** (one grouped message per channel) |
+| Duplicate webhook deliveries | 547 | **0** |
 
-*Recorded from the live dashboard (`docker compose`, one machine). The top panel is shown at 12× speed, the bottom at 5×.
-The naive run was still going when it was cut off; the controlled experiment reached 1,164 notifications. Commands to reproduce are [below](#reproduce-the-storm).*
+*Captured from the live dashboard on a fresh `docker compose` stack for each profile, both shown at 5x speed on the same clock.
+Numbers are after 125 s; the naive counters keep climbing for as long as the incident lasts. Commands to reproduce are [below](#reproduce-the-storm).*
 
 ## Measured results
 
