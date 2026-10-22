@@ -18,7 +18,7 @@ or fall behind, and **alert storms** that train people to ignore the channel.
 Eight restaurants in one zone melt down at the same time. The same data runs through two configurations of the same system.
 
 <p align="center">
-  <img src="docs/assets/storm-demo.gif" alt="Alert storm: the naive profile sends hundreds of notifications and duplicate webhooks; NoiseCut sends one grouped notification with no duplicates" width="900">
+  <img src="docs/assets/alert-storm-naive-vs-noisecut.gif" alt="Alert storm: the naive profile sends hundreds of notifications and duplicate webhooks; NoiseCut sends one grouped notification with no duplicates" width="900">
 </p>
 
 | Same storm, same data | Naive pipeline | NoiseCut |
