@@ -3,7 +3,8 @@
 **A real-time business alerting engine that catches real incidents early without drowning people in noise.**
 A learning-scale rebuild of the problem behind Swiggy's Klaxon platform.
 
-> **Status:** M3 done. The robust profile fixes every measured failure: 0 duplicate notifications across 20 forced crashes, and one storm → 4 notifications instead of 1,164 ([experiments](docs/experiments/README.md)). Next: M4 (deploy).
+> **Status:** M4 done. The robust profile fixes every measured failure: 0 duplicate notifications across 20 forced crashes, and one storm → 4 notifications instead of 1,164 ([experiments](docs/experiments/README.md)).
+> It deploys to k3s from GitHub Actions; the public showcase is read-only ([runbooks](docs/runbooks/)). Next: M5 (report).
 > See the [milestones](docs/plan/MILESTONES.md).
 
 ```
@@ -22,7 +23,7 @@ Rules it detects (from JSON definitions in PostgreSQL):
 What it is really about: event time vs. processing time, watermarks and late data, checkpointed state,
 idempotent consumers, repartitioning, and alert-fatigue controls. Each one is shown first as a measured failure, then as a fix.
 
-**Stack:** .NET 10 · Redpanda · PostgreSQL · Docker Compose (local) · k3s + GitHub Actions (deploy, M4)
+**Stack:** .NET 10 · Redpanda · PostgreSQL · Docker Compose (local) · k3s + GitHub Actions (deploy)
 
 ## Quick start
 

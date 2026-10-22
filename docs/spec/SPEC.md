@@ -487,7 +487,7 @@ Server-rendered **Razor Pages** + a small SSE script. No SPA build toolchain (AD
 
 | Route | Purpose |
 |-------|---------|
-| `GET/POST /admin/login`, `POST /admin/logout` | Single admin. Password hash and key come from a Kubernetes Secret / `.env`. Login is rate-limited and has lockout. |
+| `GET/POST /admin/login`, `POST /admin/login?handler=Logout` | Single admin. Password hash and key come from a Kubernetes Secret / `.env`. Login is rate-limited (10/min per client) and locks a client out after 5 failures in 15 min (M4). |
 | `POST /api/rules`, `PUT /api/rules/{id}`, `POST /api/rules/{id}/(enable\|disable)` | Rule management. Each write bumps the version and notifies the engine. |
 | `POST /api/alerts/{key}/ack` | Acknowledge (stops escalation). |
 | `POST /api/scenarios/{name}`, `POST /api/simulator/config` | Inject scenarios / change rate or chaos (forwarded to the simulator's internal API). |
@@ -501,6 +501,9 @@ and `SameSite=Strict`.
 
 The Api writes the rule and runs `NOTIFY rules_changed`. Engines `LISTEN`, with a 30 s polling fallback.
 A changed rule version starts with fresh state (§5).
+
+> **Status (M4):** not built yet. Rules are seeded by the migrator and the engine polls them every 30 s. The rule-write
+> endpoints and `NOTIFY` were deferred, because the public showcase never needs them; they are listed under M5 follow-ups.
 
 ---
 
@@ -671,13 +674,21 @@ config), exact commands, raw numbers, a Grafana screenshot, and a conclusion.
 ## 15. Deployment (summary — details in ADR-0009 and the M4 runbook)
 
 - **Local:** `docker compose up` (`deploy/compose`) runs the whole stack on one machine.
-- **Home server:** a single-node **k3s** cluster, namespace `noisecut`, applied with kustomize.
-  - Redpanda (single node, `--smp 1 --memory 1G`, dev-container mode) and PostgreSQL run as StatefulSets with `local-path` PVCs.
-  - Resource budget ≈ **3 GiB** total (the node has ~7.6 GiB, shared with other apps). Every container has requests/limits.
+- **Home server:** a single-node **k3s** cluster, namespace `noisecut`, applied with kustomize (`deploy/k3s`, ADR-0016).
+  - Redpanda (single node, `--smp 1 --memory 700M`, dev-container mode) and PostgreSQL run as StatefulSets with `local-path` PVCs.
+  - The engine is a StatefulSet too (3 replicas, no volumes). Stable pod names keep Kafka static membership across restarts.
+  - Resource budget ≈ **3 GiB**: about 2.1 GiB of memory is requested in total (limits add up to about 3.6 GiB). The node has ~7.6 GiB, shared with other apps.
+  - Every container runs non-root, with a read-only root filesystem and dropped capabilities. A default-deny NetworkPolicy allows only same-namespace traffic, plus the Api and Grafana.
 - **CI/CD (GitHub Actions only, no manual `kubectl` from a laptop):**
-  - `ci.yml` (every PR/push): build, unit + integration tests, render manifests, build images.
-  - `deploy.yml` (push to `main` after CI passes): push immutable images `ghcr.io/kar6677thik/noisecut-<service>:<git-sha>` → join the tailnet (`tailscale/github-action`, `tag:ci`) → `kubectl apply -k` as a **namespace-scoped ServiceAccount** → run the migrator Job → `kubectl rollout status` for each service.
-- **Public access:** the existing Cloudflare Tunnel routes `noisecut.karthiksurkanti.in` → Api NodePort, and `noisecut.karthiksurkanti.in/grafana` → Grafana NodePort. The anonymous showcase is read-only (§8). `/metrics` ports, Mailpit, Redpanda and PostgreSQL are never routed publicly.
+  - `ci.yml` (every PR/push): build, unit + integration tests, render both overlays and validate them with kubeconform, build images.
+  - `deploy.yml` (after ci succeeds on `main`, or by hand with a SHA to roll back):
+    1. push immutable images `ghcr.io/kar6677thik/noisecut-<service>:<git-sha>`;
+    2. join the tailnet (`tailscale/github-action`, `tag:ci`);
+    3. run `scripts/deploy/apply.sh` as a **namespace-scoped ServiceAccount**: secrets → infrastructure + Jobs → wait for migrations → workloads → `rollout status`;
+    4. smoke-test the public URL.
+  - The CI kubeconfig sets `tls-server-name`, because the k3s API certificate doesn't list the Tailscale IP. Private images are pulled with a read-only GHCR token (`noisecut-registry`).
+- **Public access:** the existing Cloudflare Tunnel routes `noisecut.karthiksurkanti.in` → Api NodePort **30530**, and `noisecut.karthiksurkanti.in/grafana` → Grafana NodePort **30531** (Grafana serves from the `/grafana` sub-path). The anonymous showcase is read-only (§8). `/metrics` ports, Mailpit, Redpanda and PostgreSQL are never routed publicly.
+- Runbooks: `docs/runbooks/` (bootstrap, deploy/rollback/inspect, rotate secrets, local k3s rehearsal).
 
 ---
 

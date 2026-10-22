@@ -6,7 +6,7 @@ namespace NoiseCut.Engine;
 
 /// <summary>
 /// Polls PostgreSQL for rules and baselines in the background. The consume loop picks up new rules between records,
-/// so rule state is only ever touched by one thread. (LISTEN/NOTIFY hot reload arrives with rule editing in M4.)
+/// so rule state is only ever touched by one thread. (LISTEN/NOTIFY hot reload arrives with rule editing, after M4: SPEC §8.3.)
 /// </summary>
 public sealed class RuleFeed(RuleStore store, BaselineCache baselines, IOptions<EngineOptions> options, ILogger<RuleFeed> logger)
     : BackgroundService

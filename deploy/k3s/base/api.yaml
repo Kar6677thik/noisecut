@@ -1,0 +1,87 @@
+# The Api: dashboard, JSON/SSE, webhook sink, admin. The only NoiseCut service reachable from outside, through a NodePort that
+# the Cloudflare tunnel on the host forwards the public hostname to (SPEC §15, ADR-0009).
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  type: NodePort
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      nodePort: 30530
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels:
+    noisecut/workload: "true"     # applied after the migrations (scripts/deploy/apply.sh)
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+        noisecut/metrics: "true"
+    spec:
+      imagePullSecrets:
+        - name: noisecut-registry
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: noisecut-api
+          envFrom:
+            - configMapRef: { name: noisecut-config }
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: noisecut-secrets, key: POSTGRES_PASSWORD }
+            - name: ConnectionStrings__Postgres
+              value: Host=postgres;Port=5432;Database=noisecut;Username=noisecut;Password=$(POSTGRES_PASSWORD);GSS Encryption Mode=Disable
+            - name: Api__SimulatorUrl
+              value: http://simulator:8081
+            - name: Api__GrafanaUrl
+              value: /grafana/
+            - name: Api__WebhookSecret
+              valueFrom:
+                secretKeyRef: { name: noisecut-secrets, key: WEBHOOK_SECRET }
+            - name: Api__Admin__Key
+              valueFrom:
+                secretKeyRef: { name: noisecut-secrets, key: ADMIN_KEY }
+            - name: Api__Admin__PasswordHash
+              valueFrom:
+                secretKeyRef: { name: noisecut-secrets, key: ADMIN_PASSWORD_HASH }
+            - name: Api__Admin__SecureCookies
+              value: "true"
+            - name: Api__Admin__LocalBypass
+              value: "false"     # never true in a deployment (ADR-0010)
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: metrics, containerPort: 9464 }
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }

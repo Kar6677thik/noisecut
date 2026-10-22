@@ -24,3 +24,4 @@ Each one is short: the context, the decision, the alternatives we rejected, and 
 | [0013](0013-experiments-as-a-dotnet-harness.md) | Experiments run from a .NET harness, not shell scripts | Accepted |
 | [0014](0014-fencing-tokens-and-static-membership.md) | Checkpoint fencing with a PostgreSQL epoch, plus Kafka static membership | Accepted |
 | [0015](0015-cohort-attribution-for-ratio-rules.md) | Ratio rules count cancellations against the hour the order was placed | Accepted |
+| [0016](0016-k3s-deployment-shape.md) | k3s layout: engine StatefulSet, two-pass apply, scoped CI, hardened pods | Accepted |

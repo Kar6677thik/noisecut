@@ -1,0 +1,74 @@
+# Redpanda: single node, single core, about 0.7 GiB of memory. Dev-container mode relaxes fsync, which is acceptable for a
+# showcase and wrong for production data (SPEC §15, ADR-0002). Data lives on a local-path volume.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redpanda
+spec:
+  selector:
+    app: redpanda
+  ports:
+    - name: kafka
+      port: 9092
+    - name: admin
+      port: 9644
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redpanda
+spec:
+  serviceName: redpanda
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redpanda
+  template:
+    metadata:
+      labels:
+        app: redpanda
+    spec:
+      securityContext:
+        runAsUser: 101          # the image's redpanda user
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redpanda
+          image: docker.redpanda.com/redpandadata/redpanda:v26.2.5
+          args:
+            - redpanda
+            - start
+            - --mode=dev-container
+            - --smp=1
+            - --memory=700M
+            - --reserve-memory=0M
+            - --kafka-addr=internal://0.0.0.0:9092
+            - --advertise-kafka-addr=internal://redpanda:9092
+          ports:
+            - containerPort: 9092
+            - containerPort: 9644
+          readinessProbe:
+            exec:
+              command: ["/bin/bash", "-c", "rpk cluster health | grep -E 'Healthy:.+true'"]
+            periodSeconds: 10
+            failureThreshold: 30
+          resources:
+            requests: { cpu: 300m, memory: 800Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/redpanda/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi

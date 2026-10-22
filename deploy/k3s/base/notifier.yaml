@@ -1,0 +1,61 @@
+# The notifier: candidate intake, noise policy, outbox dispatcher, group flusher, escalator.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifier
+  labels:
+    noisecut/workload: "true"     # applied after the migrations (scripts/deploy/apply.sh)
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notifier
+  template:
+    metadata:
+      labels:
+        app: notifier
+        noisecut/metrics: "true"
+    spec:
+      imagePullSecrets:
+        - name: noisecut-registry
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: notifier
+          image: noisecut-notifier
+          envFrom:
+            - configMapRef: { name: noisecut-config }
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: noisecut-secrets, key: POSTGRES_PASSWORD }
+            - name: ConnectionStrings__Postgres
+              value: Host=postgres;Port=5432;Database=noisecut;Username=noisecut;Password=$(POSTGRES_PASSWORD);GSS Encryption Mode=Disable
+            - name: Notifier__Webhook__Url
+              value: http://api:8080/sinks/webhook
+            - name: Notifier__Webhook__Secret
+              valueFrom:
+                secretKeyRef: { name: noisecut-secrets, key: WEBHOOK_SECRET }
+            - name: Notifier__Email__SmtpHost
+              value: mailpit
+            - name: Notifier__Email__SmtpPort
+              value: "1025"
+          ports:
+            - { name: metrics, containerPort: 9464 }
+          livenessProbe:
+            httpGet: { path: /metrics, port: metrics }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }

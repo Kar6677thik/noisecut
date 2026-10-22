@@ -8,6 +8,7 @@
     <ProjectReference Include="..\..\src\NoiseCut.Infrastructure\NoiseCut.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\NoiseCut.Migrator\NoiseCut.Migrator.csproj" />
     <ProjectReference Include="..\..\src\NoiseCut.Notifier\NoiseCut.Notifier.csproj" />
+    <ProjectReference Include="..\..\src\NoiseCut.Api\NoiseCut.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

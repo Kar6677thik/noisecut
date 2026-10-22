@@ -1,0 +1,33 @@
+# A throwaway rehearsal of the home deployment on a k3s running inside Docker on your own machine
+# (see docs/runbooks/k3s-rehearsal.md). Same base, but images are locally built ones imported into the cluster,
+# tagged ":local", so nothing is pulled from GHCR.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: noisecut-public
+    # Referenced from a base Deployment: kustomize can't rewrite a hash-suffixed name across the base/overlay boundary.
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - hostname=localhost
+
+images:
+  - name: noisecut-simulator
+    newName: ghcr.io/kar6677thik/noisecut-simulator
+    newTag: local
+  - name: noisecut-engine
+    newName: ghcr.io/kar6677thik/noisecut-engine
+    newTag: local
+  - name: noisecut-notifier
+    newName: ghcr.io/kar6677thik/noisecut-notifier
+    newTag: local
+  - name: noisecut-api
+    newName: ghcr.io/kar6677thik/noisecut-api
+    newTag: local
+  - name: noisecut-migrator
+    newName: ghcr.io/kar6677thik/noisecut-migrator
+    newTag: local

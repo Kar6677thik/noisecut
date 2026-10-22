@@ -1,0 +1,45 @@
+# ONE-TIME bootstrap, applied by the cluster owner with their own (cluster-admin) kubeconfig:
+#   kubectl apply -f deploy/k3s/bootstrap/ci-access.yaml
+# It creates the namespace and the identity GitHub Actions deploys with (ADR-0009, ADR-0016).
+#
+# Least privilege: the deployer is bound to Kubernetes' built-in "admin" ClusterRole through a *RoleBinding in this namespace*.
+# That grants full control of noisecut's objects (Deployments, Secrets, Jobs, Roles, NetworkPolicies, ...) and nothing outside
+# it: no other namespaces, no nodes, no cluster-wide objects, no new namespaces. A leaked CI token can damage NoiseCut, not the
+# other apps on the server.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: noisecut
+  labels:
+    app.kubernetes.io/part-of: noisecut
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: noisecut-deployer
+  namespace: noisecut
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: noisecut-deployer-admin
+  namespace: noisecut
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: noisecut-deployer
+    namespace: noisecut
+---
+# A long-lived token for the ServiceAccount. Kubernetes fills in .data.token and .data["ca.crt"] after creation.
+# Rotate it by deleting this Secret and applying the file again (see docs/runbooks/rotate-secrets.md).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: noisecut-deployer-token
+  namespace: noisecut
+  annotations:
+    kubernetes.io/service-account.name: noisecut-deployer
+type: kubernetes.io/service-account-token

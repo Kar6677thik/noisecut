@@ -28,7 +28,7 @@ public sealed class IndexModel(AdminGuard guard, SimulatorClient simulator) : Pa
     {
         if (!guard.IsAdmin(HttpContext))
         {
-            return NotFound();
+            return Redirect($"/admin/login?ReturnUrl={Uri.EscapeDataString(Request.Path)}");
         }
 
         await LoadStatusAsync(ct);
@@ -39,7 +39,7 @@ public sealed class IndexModel(AdminGuard guard, SimulatorClient simulator) : Pa
     {
         if (!guard.IsAdmin(HttpContext))
         {
-            return NotFound();
+            return Redirect($"/admin/login?ReturnUrl={Uri.EscapeDataString(Request.Path)}");
         }
 
         var body = new JsonObject();

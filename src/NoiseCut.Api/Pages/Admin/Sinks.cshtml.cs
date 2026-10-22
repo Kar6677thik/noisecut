@@ -14,7 +14,7 @@ public sealed class SinksModel(AdminGuard guard, DashboardQueries queries) : Pag
     {
         if (!guard.IsAdmin(HttpContext))
         {
-            return NotFound();
+            return Redirect($"/admin/login?ReturnUrl={Uri.EscapeDataString(Request.Path)}");
         }
 
         Stats = await queries.StatsAsync();

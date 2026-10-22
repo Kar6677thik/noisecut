@@ -5,6 +5,58 @@ Each milestone PR adds at least one entry. Decisions that need more than a line 
 
 ---
 
+## 2026-10-21 — M4: Deploy (GitHub Actions → k3s)
+
+**What**
+- **Images:** one multi-stage Dockerfile that builds all five services.
+  - Runtime is the *chiseled* .NET image: no shell or package manager, and non-root.
+  - The binary is renamed to `/app/service`, and OCI labels carry the commit SHA.
+  - The api image is 236 MB. librdkafka was checked to work without a shell.
+- **Manifests:** `deploy/k3s` holds a kustomize base plus `home` and `local` overlays (ADR-0016).
+  - Redpanda, PostgreSQL and a 3-replica engine run as StatefulSets; Jobs create the topics and run the migrations.
+  - Prometheus discovers pods with `kubernetes_sd` inside the namespace only. Grafana is served under `/grafana`.
+  - NetworkPolicies: default-deny, plus same-namespace traffic, plus the two public NodePorts.
+  - Every container is non-root, with a read-only root filesystem and limits.
+- **CI identity:** a bootstrap manifest for a ServiceAccount bound to `admin` *in `noisecut` only*, and `make-kubeconfig.sh`, which emits its kubeconfig (with `tls-server-name`).
+- **Workflows:**
+  - `ci.yml` gained a `manifests` job: render both overlays, validate them with kubeconform against k8s 1.36, and syntax-check the scripts.
+  - `deploy.yml` runs after a green ci on `main`, or by hand with a SHA to roll back:
+    1. SHA-tagged images to GHCR;
+    2. an ephemeral Tailscale node (`tag:ci`);
+    3. `scripts/deploy/apply.sh`;
+    4. a smoke test that also asserts an anonymous admin call gets 401.
+  - If the secrets aren't set yet, the deploy is skipped with a notice instead of failing.
+- **Admin security** (ADR-0010):
+  - cookie login with a PBKDF2-SHA256 hash (600k iterations; the Api has a `hash-password` command), plus lockout after 5 failures;
+  - rate limits: 240/min per client globally, 10/min on login, 3 concurrent SSE streams;
+  - `Secure`/`HttpOnly`/`SameSite=Strict` cookies, and antiforgery on every form.
+- **Docs:** ADR-0016, four runbooks, `learning/M4-deploy.md`, and SPEC §8.2 and §15 updated.
+- **Tests:** 37 integration tests, including the new hash and lockout tests.
+
+**Rehearsal (k3s v1.36.4 in Docker, the same version as the server), each item verified**
+| Check | Result |
+|-------|--------|
+| Full deploy, then a redeploy with `apply.sh` as the scoped ServiceAccount | both succeed; migrations finish before any workload starts |
+| Deployer permissions (`kubectl auth can-i`) | it can manage Deployments, Secrets, Roles and NetworkPolicies in `noisecut`; it **cannot** touch `default`, read `kube-system` secrets, create namespaces or list nodes |
+| Public surface | dashboard and JSON are public; admin POST → 401; `/admin` → 302 to login; an unsigned webhook → 401; a login POST without the antiforgery token → 400 |
+| NetworkPolicies, tested from a pod in `default` | the Api is reachable; PostgreSQL and Redpanda are not |
+| Force-delete `engine-1` | back and ready in 3 s, holding the same partitions (epoch 2, restored state); the other engines didn't rebalance |
+| Detection on k3s | the kitchen meltdown alerts in about 10 s; Prometheus discovers all 6 app pods |
+
+**Bugs the rehearsal caught before the server did**
+- Grafana: `CreateContainerConfigError`. The base referenced a ConfigMap generated in the overlay, and kustomize doesn't rewrite that
+  name's hash suffix across the boundary. Fix: `disableNameSuffixHash` on `noisecut-public`.
+- Mailpit crashed on the read-only root filesystem. Fix: an `emptyDir` at `/tmp`.
+
+**Deferred:** rule editing + LISTEN/NOTIFY hot reload (SPEC §8.3). The read-only showcase never edits rules; the engine still polls every 30 s.
+
+**Owner action before the first deploy:** the one-time [bootstrap](runbooks/bootstrap-home-server.md) (ServiceAccount, Tailscale
+policy, tunnel rule, GitHub secrets). Until then the deploy job skips itself.
+
+**Next:** M5 Report. One page of numbers, the README diagram, a recording of Break #1 vs. robust.
+
+---
+
 ## 2026-10-21 — M3: Prove (fix every failure, measure again)
 
 **What**

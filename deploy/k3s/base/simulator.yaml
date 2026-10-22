@@ -1,0 +1,72 @@
+# The simulator. Its control API (8081) is reachable only inside the namespace: the Api forwards admin requests to it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: simulator
+spec:
+  selector:
+    app: simulator
+  ports:
+    - name: control
+      port: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simulator
+  labels:
+    noisecut/workload: "true"     # applied after the migrations (scripts/deploy/apply.sh)
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # never two simulators producing at once
+  selector:
+    matchLabels:
+      app: simulator
+  template:
+    metadata:
+      labels:
+        app: simulator
+        noisecut/metrics: "true"
+    spec:
+      imagePullSecrets:
+        - name: noisecut-registry
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: simulator
+          image: noisecut-simulator
+          envFrom:
+            - configMapRef: { name: noisecut-config }
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: noisecut-secrets, key: POSTGRES_PASSWORD }
+            - name: ConnectionStrings__Postgres
+              value: Host=postgres;Port=5432;Database=noisecut;Username=noisecut;Password=$(POSTGRES_PASSWORD);GSS Encryption Mode=Disable
+            - name: Simulator__TimeScale
+              value: "10"
+            - name: Simulator__OrdersPerSimMinute
+              value: "60"        # the showcase runs quiet (SPEC §17); raise it from /admin for a demo
+          ports:
+            - { name: control, containerPort: 8081 }
+            - { name: metrics, containerPort: 9464 }
+          readinessProbe:
+            httpGet: { path: /readyz, port: control }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: control }
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 50m, memory: 96Mi }
+            limits: { memory: 192Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
